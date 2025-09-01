@@ -1,50 +1,108 @@
-name: Build docker image
+name: Build and Push Docker Images
 permissions:
   packages: write
+  contents: read
 
 on:
   push:
     branches:
       - 'main'
-      - 'dev'
-      - 'solana-v2'
-      - 'ai'
+      - 'degencity'
+      - 'staging'
+      - 'production'
     tags:
       - 'v*.*.*'
+  pull_request:
+    branches:
+      - 'main'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment (staging or prod)'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - prod
+
+env:
+  REGISTRY: registry.digitalocean.com
+  IMAGE_NAME: ${{ secrets.DO_REGISTRY_NAME }}/hyperfy
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [linux/amd64, linux/arm64]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.1.4
-      - name: Login to GitHub Container Registry
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Install doctl
+        run: |
+          curl -sL https://github.com/digitalocean/doctl/releases/download/v1.104.0/doctl-1.104.0-linux-amd64.tar.gz | tar -xzv
+          sudo mv doctl /usr/local/bin
+          
+      - name: Login to DigitalOcean Container Registry
+        run: |
+          doctl auth init -t ${{ secrets.DIGITALOCEAN_TOKEN }}
+          doctl registry login --expiry-seconds 1200
+          
+      - name: Login to GitHub Container Registry (backup)
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+          
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{github.repository}}
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+            ghcr.io/${{ github.repository }}
           tags: |
-            type=schedule
             type=ref,event=branch
             type=ref,event=tag
             type=ref,event=pr
-            type=sha,format=long
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Build and push
+            type=sha,prefix={{branch}}-,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ github.event.inputs.environment || 'staging' }},enable=${{ github.event_name == 'workflow_dispatch' }}
+            
+      - name: Build and push to registries
         uses: docker/build-push-action@v6
         with:
-          platforms: linux/amd64,linux/arm64
-          push: true
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
           build-args: |
             COMMIT_HASH=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VERSION=${{ github.ref_name }}
+            
+  cleanup:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Install doctl
+        run: |
+          curl -sL https://github.com/digitalocean/doctl/releases/download/v1.104.0/doctl-1.104.0-linux-amd64.tar.gz | tar -xzv
+          sudo mv doctl /usr/local/bin
+          
+      - name: Cleanup old images
+        run: |
+          doctl auth init -t ${{ secrets.DIGITALOCEAN_TOKEN }}
+          doctl registry login
+          # Keep only the 10 most recent tags
+          doctl registry repository list-tags ${{ secrets.DO_REGISTRY_NAME }}/hyperfy --format Name --no-header | tail -n +11 | xargs -I {} doctl registry repository delete-tag ${{ secrets.DO_REGISTRY_NAME }}/hyperfy {} --force || true
