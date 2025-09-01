@@ -52,6 +52,7 @@ jobs:
         run: |
           doctl auth init -t ${{ secrets.DIGITALOCEAN_TOKEN }}
           doctl registry login --expiry-seconds 1200
+          docker login registry.digitalocean.com
           
       - name: Login to GitHub Container Registry (backup)
         uses: docker/login-action@v3
