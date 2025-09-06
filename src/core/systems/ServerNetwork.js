@@ -7,6 +7,7 @@ import { createJWT, readJWT } from '../utils-server'
 import { cloneDeep, isNumber } from 'lodash-es'
 import * as THREE from '../extras/three'
 import { Ranks } from '../extras/ranks'
+import { generatePlayerName, generateNpcName, releaseName, detectEntityType } from '../utils/NameGenerator'
 
 const SAVE_INTERVAL = parseInt(process.env.SAVE_INTERVAL || '60') // seconds
 const PING_RATE = 1 // seconds
@@ -54,6 +55,21 @@ export class ServerNetwork extends System {
     for (const entity of entities) {
       const data = JSON.parse(entity.data)
       data.state = {}
+      
+      // Generate name for NPCs that don't have one, or register existing names
+      if (data.type === 'app') {
+        if (!data.name) {
+          const entityType = detectEntityType(data)
+          if (entityType !== 'player') {
+            data.name = generateNpcName(entityType)
+            console.log(`[NameGenerator] Assigned name "${data.name}" to existing NPC entity`)
+          }
+        } else {
+          // Register existing name to prevent duplicates
+          console.log(`[NameGenerator] Registered existing NPC name: "${data.name}"`)
+        }
+      }
+      
       this.world.entities.add(data, true)
     }
     // hydrate settings
@@ -258,7 +274,8 @@ export class ServerNetwork extends System {
       // create socket
       const socket = new Socket({ id: user.id, ws, network: this })
 
-      // spawn player
+      // spawn player with generated name
+      const playerName = name || generatePlayerName() // Use generated name if no custom name provided
       socket.player = this.world.entities.add(
         {
           id: user.id,
@@ -267,7 +284,7 @@ export class ServerNetwork extends System {
           quaternion: this.spawn.quaternion.slice(),
           owner: socket.id, // deprecated, same as userId
           userId: user.id, // deprecated, same as userId
-          name: name || user.name,
+          name: playerName,
           health: HEALTH_MAX,
           avatar: user.avatar || this.world.settings.avatar?.url || 'asset://avatar.vrm',
           sessionAvatar: avatar || null,
@@ -458,6 +475,16 @@ export class ServerNetwork extends System {
     if (!socket.player.isBuilder()) {
       return console.error('player attempted to add entity without builder permission')
     }
+    
+    // Generate name for NPCs if they don't have one
+    if (data.type === 'app' && !data.name) {
+      const entityType = detectEntityType(data)
+      if (entityType !== 'player') {
+        data.name = generateNpcName(entityType)
+        console.log(`[NameGenerator] Assigned name "${data.name}" to new NPC entity`)
+      }
+    }
+    
     const entity = this.world.entities.add(data)
     this.send('entityAdded', data, socket.id)
     if (entity.isApp) this.dirtyApps.add(entity.data.id)
@@ -499,6 +526,13 @@ export class ServerNetwork extends System {
   onEntityRemoved = (socket, id) => {
     if (!socket.player.isBuilder()) return console.error('player attempted to remove entity without builder permission')
     const entity = this.world.entities.get(id)
+    
+    // Release entity name when removing NPCs
+    if (entity && entity.data && entity.data.name && entity.data.type === 'app') {
+      releaseName(entity.data.name)
+      console.log(`[NameGenerator] Released name "${entity.data.name}" from removed entity`)
+    }
+    
     this.world.entities.remove(id)
     this.send('entityRemoved', id, socket.id)
     if (entity.isApp) this.dirtyApps.add(id)
@@ -567,6 +601,10 @@ export class ServerNetwork extends System {
 
   onDisconnect = (socket, code) => {
     this.world.livekit.clearModifiers(socket.id)
+    // Release the player's name back to the available pool
+    if (socket.player && socket.player.data && socket.player.data.name) {
+      releaseName(socket.player.data.name)
+    }
     socket.player.destroy(true)
     this.sockets.delete(socket.id)
   }
