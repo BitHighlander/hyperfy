@@ -1,7 +1,8 @@
 import { css } from '@firebolt-dev/css'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ChevronUpIcon, LoaderIcon, MessageSquareTextIcon, RefreshCwIcon, SendHorizonalIcon } from 'lucide-react'
 import moment from 'moment'
+import { CombatUI } from '@degenquest/overlay-ui'
 
 import { AvatarPane } from './AvatarPane'
 import { useElemSize } from './useElemSize'
@@ -30,6 +31,11 @@ export function CoreUI({ world }) {
   const [disconnected, setDisconnected] = useState(false)
   const [apps, setApps] = useState(false)
   const [kicked, setKicked] = useState(null)
+  
+  // UI Mode Configuration
+  const uiMode = env?.PUBLIC_UI_MODE || 'plugin' // 'plugin' | 'legacy' | 'both'
+  const showLegacyUI = uiMode === 'legacy' || uiMode === 'both'
+  const showPluginUI = uiMode === 'plugin' || uiMode === 'both'
   useEffect(() => {
     world.on('ready', setReady)
     world.on('player', setPlayer)
@@ -91,12 +97,26 @@ export function CoreUI({ world }) {
         overflow: hidden;
       `}
     >
+      {/* Plugin UI System */}
+      {showPluginUI && ready && <CombatUI world={world} />}
+      
+      {/* Legacy UI Components */}
+      {showLegacyUI && (
+        <>
+          {!ui.reticleSuppressors && <Reticle world={world} />}
+          <Toast world={world} />
+          {ready && (
+            <>
+              <ActionsBlock world={world} />
+              <Sidebar world={world} ui={ui} />
+              <Chat world={world} />
+            </>
+          )}
+        </>
+      )}
+      
+      {/* Always-visible components */}
       {disconnected && <Disconnected />}
-      {!ui.reticleSuppressors && <Reticle world={world} />}
-      {<Toast world={world} />}
-      {ready && <ActionsBlock world={world} />}
-      {ready && <Sidebar world={world} ui={ui} />}
-      {ready && <Chat world={world} />}
       {/* {ready && <Side world={world} player={player} menu={menu} />} */}
       {avatar && <AvatarPane key={avatar.hash} world={world} info={avatar} />}
       {/* {apps && <AppsPane world={world} close={() => world.ui.toggleApps()} />} */}
