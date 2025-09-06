@@ -89,6 +89,35 @@ export function releaseName(name) {
 }
 
 /**
+ * Register an existing name to prevent conflicts
+ * @param {string} name - The name to register
+ */
+export function registerExistingName(name) {
+  if (name && !activeNames.has(name)) {
+    activeNames.add(name)
+    
+    // Update counters to prevent conflicts
+    const parts = name.split('_')
+    if (parts.length === 2) {
+      const type = parts[0]
+      const number = parseInt(parts[1])
+      if (!isNaN(number) && number > 0) {
+        if (!nameCounters.hasOwnProperty(type)) {
+          nameCounters[type] = 0
+        }
+        if (nameCounters[type] < number) {
+          nameCounters[type] = number
+        }
+      }
+    }
+    
+    console.log(`[NameGenerator] Registered existing name: ${name}`)
+    return true
+  }
+  return false
+}
+
+/**
  * Auto-detect entity type from various sources
  * @param {object} entityData - The entity data object
  * @returns {string} Detected entity type

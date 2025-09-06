@@ -7,7 +7,7 @@ import { createJWT, readJWT } from '../utils-server'
 import { cloneDeep, isNumber } from 'lodash-es'
 import * as THREE from '../extras/three'
 import { Ranks } from '../extras/ranks'
-import { generatePlayerName, generateNpcName, releaseName, detectEntityType } from '../utils/NameGenerator'
+import { generatePlayerName, generateNpcName, releaseName, detectEntityType, registerExistingName } from '../utils/NameGenerator'
 
 const SAVE_INTERVAL = parseInt(process.env.SAVE_INTERVAL || '60') // seconds
 const PING_RATE = 1 // seconds
@@ -63,10 +63,12 @@ export class ServerNetwork extends System {
           if (entityType !== 'player') {
             data.name = generateNpcName(entityType)
             console.log(`[NameGenerator] Assigned name "${data.name}" to existing NPC entity`)
+            // Mark this entity as needing to be saved since we modified it
+            this.dirtyApps.add(data.id)
           }
         } else {
           // Register existing name to prevent duplicates
-          console.log(`[NameGenerator] Registered existing NPC name: "${data.name}"`)
+          registerExistingName(data.name)
         }
       }
       
