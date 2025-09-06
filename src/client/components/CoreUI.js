@@ -2,7 +2,7 @@ import { css } from '@firebolt-dev/css'
 import { useEffect, useRef, useState } from 'react'
 import { ChevronUpIcon, LoaderIcon, MessageSquareTextIcon, RefreshCwIcon, SendHorizonalIcon } from 'lucide-react'
 import moment from 'moment'
-import { CombatUI } from '@degenquest/overlay-ui'
+import { DegenQuestUI } from '@degenquest/overlay-ui'
 
 import { AvatarPane } from './AvatarPane'
 import { useElemSize } from './useElemSize'
@@ -98,7 +98,7 @@ export function CoreUI({ world }) {
       `}
     >
       {/* Plugin UI System */}
-      {showPluginUI && ready && <CombatUI world={world} />}
+      {showPluginUI && ready && <DegenQuestUI world={world} />}
       
       {/* Legacy UI Components */}
       {showLegacyUI && (

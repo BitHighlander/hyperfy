@@ -11,6 +11,9 @@ dependencies:
   '@aws-sdk/client-s3':
     specifier: ^3.859.0
     version: 3.883.0
+  '@degenquest/overlay-ui':
+    specifier: file:../ui
+    version: file:../ui(react-dom@19.1.1)(react@19.1.1)
   '@fastify/compress':
     specifier: ^8.0.1
     version: 8.1.0
@@ -1351,6 +1354,13 @@ packages:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+    dev: false
+
+  /@firebolt-dev/css@0.1.14:
+    resolution: {integrity: sha512-QymzMS78bcZh9QrHijlMxqTADXSvHx6SbQM29s2N/QFZ5nvxbvykjV66g3NuziFdtY2s2FMdipJXy6W3htgofw==}
+    dependencies:
+      react: 19.2.0-canary-de5a1b20-20250905
+      stylis: 4.3.6
     dev: false
 
   /@firebolt-dev/css@0.4.3:
@@ -4234,6 +4244,14 @@ packages:
       yallist: 3.1.1
     dev: true
 
+  /lucide-react@0.263.1(react@19.1.1):
+    resolution: {integrity: sha512-keqxAx97PlaEN89PXZ6ki1N8nRjGWtDa4021GFYLNj0RgruM5odbpl8GHTExj0hhPq3sF6Up0gnxt6TSHu+ovw==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0
+    dependencies:
+      react: 19.1.1
+    dev: false
+
   /lucide-react@0.469.0(react@19.1.1):
     resolution: {integrity: sha512-28vvUnnKQ/dBwiCQtwJw7QauYnE7yd2Cyp4tTTJpvglX4EMpbflcdBgrgToX2j71B3YvugK/NH3BGUk+E/p/Fw==}
     peerDependencies:
@@ -5658,4 +5676,18 @@ packages:
 
   /yoga-layout@3.2.1:
     resolution: {integrity: sha512-0LPOt3AxKqMdFBZA3HBAt/t/8vIKq7VaQYbuA8WxCgung+p9TVyKRYdpvCb80HcdTN2NkbIKbhNwKUfm3tQywQ==}
+    dev: false
+
+  file:../ui(react-dom@19.1.1)(react@19.1.1):
+    resolution: {directory: ../ui, type: directory}
+    id: file:../ui
+    name: '@degenquest/overlay-ui'
+    peerDependencies:
+      react: ^18.0.0
+      react-dom: ^18.0.0
+    dependencies:
+      '@firebolt-dev/css': 0.1.14
+      lucide-react: 0.263.1(react@19.1.1)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
     dev: false
