@@ -2,7 +2,7 @@ import { css } from '@firebolt-dev/css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronUpIcon, LoaderIcon, MessageSquareTextIcon, RefreshCwIcon, SendHorizonalIcon } from 'lucide-react'
 import moment from 'moment'
-import { OverlayUI } from '@degenquest/overlay-ui'
+import { OverlayUI, CombatUI } from '@degenquest/overlay-ui'
 
 import { AvatarPane } from './AvatarPane'
 import { useElemSize } from './useElemSize'
@@ -32,10 +32,12 @@ export function CoreUI({ world }) {
   const [apps, setApps] = useState(false)
   const [kicked, setKicked] = useState(null)
   
-  // Check if old UI should be shown (default: false for no UI)
-  const showOldUI = env?.PUBLIC_SHOW_OLD_UI === 'true'
+  // UI Mode Configuration
+  const uiMode = env?.PUBLIC_UI_MODE || 'plugin' // 'plugin' | 'legacy' | 'both'
+  const showLegacyUI = uiMode === 'legacy' || uiMode === 'both'
+  const showPluginUI = uiMode === 'plugin' || uiMode === 'both'
   
-  // Initialize OverlayUI system
+  // Initialize OverlayUI system bridge
   const overlayUI = useMemo(() => {
     const bridge = {
       getFPS: () => world.renderer?.fps || 0,
@@ -45,7 +47,6 @@ export function CoreUI({ world }) {
       on: (event, handler) => world.on(event, handler),
       off: (event, handler) => world.off(event, handler),
       sendCommand: (cmd, data) => {
-        // Handle commands from UI
         console.log('[OverlayUI] Command:', cmd, data)
         world.emit('ui:command', { command: cmd, data })
       }
@@ -113,16 +114,31 @@ export function CoreUI({ world }) {
         overflow: hidden;
       `}
     >
-      {/* OverlayUI System - New extensible UI */}
-      {overlayUI.render()}
+      {/* Plugin UI System */}
+      {showPluginUI && (
+        <>
+          {overlayUI.render()}
+          {ready && <CombatUI world={world} />}
+        </>
+      )}
       
-      {/* OLD UI COMPONENTS - Controlled by SHOW_OLD_UI env var */}
+      {/* Legacy UI Components */}
+      {showLegacyUI && (
+        <>
+          {!ui.reticleSuppressors && <Reticle world={world} />}
+          <Toast world={world} />
+          {ready && (
+            <>
+              <ActionsBlock world={world} />
+              <Sidebar world={world} ui={ui} />
+              <Chat world={world} />
+            </>
+          )}
+        </>
+      )}
+      
+      {/* Always-visible components */}
       {disconnected && <Disconnected />}
-      {showOldUI && !ui.reticleSuppressors && <Reticle world={world} />}
-      {showOldUI && <Toast world={world} />}
-      {showOldUI && ready && <ActionsBlock world={world} />}
-      {showOldUI && ready && <Sidebar world={world} ui={ui} />}
-      {showOldUI && ready && <Chat world={world} />}
       {/* {ready && <Side world={world} player={player} menu={menu} />} */}
       {avatar && <AvatarPane key={avatar.hash} world={world} info={avatar} />}
       {/* {apps && <AppsPane world={world} close={() => world.ui.toggleApps()} />} */}
