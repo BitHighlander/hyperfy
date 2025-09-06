@@ -1,8 +1,8 @@
 import { css } from '@firebolt-dev/css'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ChevronUpIcon, LoaderIcon, MessageSquareTextIcon, RefreshCwIcon, SendHorizonalIcon } from 'lucide-react'
 import moment from 'moment'
-import { OverlayUI, CombatUI } from '@degenquest/overlay-ui'
+import { CombatUI } from '@degenquest/overlay-ui'
 
 import { AvatarPane } from './AvatarPane'
 import { useElemSize } from './useElemSize'
@@ -36,23 +36,6 @@ export function CoreUI({ world }) {
   const uiMode = env?.PUBLIC_UI_MODE || 'plugin' // 'plugin' | 'legacy' | 'both'
   const showLegacyUI = uiMode === 'legacy' || uiMode === 'both'
   const showPluginUI = uiMode === 'plugin' || uiMode === 'both'
-  
-  // Initialize OverlayUI system bridge
-  const overlayUI = useMemo(() => {
-    const bridge = {
-      getFPS: () => world.renderer?.fps || 0,
-      getPing: () => world.network?.ping || 0,
-      getPlayerHealth: () => player?.health || 100,
-      getPlayerPosition: () => player?.position || { x: 0, y: 0, z: 0 },
-      on: (event, handler) => world.on(event, handler),
-      off: (event, handler) => world.off(event, handler),
-      sendCommand: (cmd, data) => {
-        console.log('[OverlayUI] Command:', cmd, data)
-        world.emit('ui:command', { command: cmd, data })
-      }
-    }
-    return new OverlayUI(bridge)
-  }, [world, player])
   useEffect(() => {
     world.on('ready', setReady)
     world.on('player', setPlayer)
@@ -115,12 +98,7 @@ export function CoreUI({ world }) {
       `}
     >
       {/* Plugin UI System */}
-      {showPluginUI && (
-        <>
-          {overlayUI.render()}
-          {ready && <CombatUI world={world} />}
-        </>
-      )}
+      {showPluginUI && ready && <CombatUI world={world} />}
       
       {/* Legacy UI Components */}
       {showLegacyUI && (
