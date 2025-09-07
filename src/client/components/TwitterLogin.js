@@ -244,14 +244,14 @@ export function TwitterLogin({ world }) {
         </div>
       )}
 
-      {/* Become Builder Button - Bottom Left */}
+      {/* Become Builder Button - Bottom Right */}
       {!isBuilder && (
         <div
           className='become-builder-button'
           css={css`
             position: absolute;
-            bottom: 1rem;
-            left: 1rem;
+            bottom: 1.5rem;
+            right: 1.5rem;
             z-index: 1000;
             pointer-events: auto !important;
           `}
@@ -292,27 +292,63 @@ export function TwitterLogin({ world }) {
             disabled={loading || upgradingToBuilder}
             css={css`
               padding: 0.75rem 1.5rem;
-              background: linear-gradient(135deg, #10b981, #059669);
-              color: white;
-              border: none;
-              border-radius: 2rem;
-              font-weight: 600;
+              background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
+              border: 2px solid;
+              border-image: linear-gradient(135deg, #00ffff, #ff00ff) 1;
+              color: #00ffff;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: 0.1em;
               cursor: pointer;
               transition: all 0.3s ease;
-              box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
               display: flex;
               align-items: center;
-              gap: 0.5rem;
+              gap: 0.75rem;
               pointer-events: auto !important;
+              position: relative;
+              overflow: hidden;
+              text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+              
+              &::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
+                animation: scan 3s linear infinite;
+              }
+              
+              &::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(135deg, 
+                  rgba(0, 255, 255, 0.1) 0%, 
+                  transparent 50%, 
+                  rgba(255, 0, 255, 0.1) 100%
+                );
+                pointer-events: none;
+              }
+              
+              @keyframes scan {
+                to { left: 100%; }
+              }
               
               &:hover:not(:disabled) {
                 transform: translateY(-2px);
-                box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+                box-shadow: 
+                  0 0 20px rgba(0, 255, 255, 0.6),
+                  0 0 40px rgba(0, 255, 255, 0.3),
+                  inset 0 0 20px rgba(0, 255, 255, 0.1);
+                border-image: linear-gradient(135deg, #00ff00, #00ffff, #ff00ff) 1;
               }
               
               &:disabled {
-                opacity: 0.7;
+                opacity: 0.5;
                 cursor: not-allowed;
+                filter: grayscale(0.5);
               }
               
               &:active:not(:disabled) {
@@ -327,21 +363,51 @@ export function TwitterLogin({ world }) {
                     display: inline-block;
                     width: 16px;
                     height: 16px;
-                    border: 2px solid rgba(255, 255, 255, 0.3);
-                    border-top-color: white;
+                    border: 2px solid rgba(0, 255, 255, 0.3);
+                    border-top-color: #00ffff;
                     border-radius: 50%;
                     animation: spin 0.8s linear infinite;
+                    filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.8));
+                    position: relative;
+                    z-index: 1;
                     
                     @keyframes spin {
                       to { transform: rotate(360deg); }
                     }
                   `}
                 />
-                {isTwitterUser ? 'Upgrading...' : 'Connecting...'}
+                <span css={css`position: relative; z-index: 1;`}>
+                  {isTwitterUser ? 'Upgrading...' : 'Connecting...'}
+                </span>
               </>
             ) : (
               <>
-                🔨 Become a Builder
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  css={css`
+                    filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.8));
+                    position: relative;
+                    z-index: 1;
+                  `}
+                >
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+                <span css={css`position: relative; z-index: 1;`}>
+                  Become a Builder
+                </span>
+                <span
+                  css={css`
+                    font-size: 1.25rem;
+                    filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.8));
+                    position: relative;
+                    z-index: 1;
+                  `}
+                >
+                  ⚡
+                </span>
               </>
             )}
           </button>
