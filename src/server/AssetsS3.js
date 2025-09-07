@@ -133,16 +133,33 @@ export class AssetsS3 {
 
   async init({ rootDir, worldDir }) {
     console.log('[assets] initializing')
+    console.log('[assets] S3 Configuration:', {
+      bucket: this.bucketName,
+      prefix: this.prefix,
+      url: this.url,
+      endpoint: this.client.config.endpoint,
+      region: this.client.config.region
+    })
+    
     // Verify bucket access
     try {
       await this.client.send(
         new ListObjectsV2Command({
           Bucket: this.bucketName,
           MaxKeys: 1,
+          Prefix: this.prefix,
         })
       )
+      console.log('[assets] Successfully connected to S3 bucket')
     } catch (error) {
-      throw new Error(`Failed to access S3 bucket: ${error.message}`)
+      console.error('[assets] S3 Error Details:', {
+        name: error.name,
+        message: error.message,
+        code: error.Code,
+        statusCode: error.$metadata?.httpStatusCode,
+        requestId: error.$metadata?.requestId
+      })
+      throw new Error(`Failed to access S3 bucket: ${error.message || error.name}`)
     }
 
     // Upload built-in assets from local directory to S3

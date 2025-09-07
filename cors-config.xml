@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CORSConfiguration>
+    <CORSRule>
+        <AllowedOrigin>http://localhost:4000</AllowedOrigin>
+        <AllowedOrigin>http://localhost:3000</AllowedOrigin>
+        <AllowedOrigin>https://degencity.com</AllowedOrigin>
+        <AllowedMethod>GET</AllowedMethod>
+        <AllowedMethod>PUT</AllowedMethod>
+        <AllowedMethod>POST</AllowedMethod>
+        <AllowedMethod>DELETE</AllowedMethod>
+        <AllowedMethod>HEAD</AllowedMethod>
+        <AllowedHeader>*</AllowedHeader>
+        <MaxAgeSeconds>3600</MaxAgeSeconds>
+    </CORSRule>
+</CORSConfiguration>
