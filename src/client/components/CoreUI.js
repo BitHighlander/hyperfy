@@ -1,9 +1,8 @@
 import { css } from '@firebolt-dev/css'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronUpIcon, LoaderIcon, MessageSquareTextIcon, RefreshCwIcon } from 'lucide-react'
+import { ChevronUpIcon, LoaderIcon, MessageSquareTextIcon, RefreshCwIcon, SendHorizonalIcon } from 'lucide-react'
 import moment from 'moment'
 
-// import { CodeEditor } from './CodeEditor'
 import { AvatarPane } from './AvatarPane'
 import { useElemSize } from './useElemSize'
 import { MouseLeftIcon } from './MouseLeftIcon'
@@ -100,9 +99,6 @@ export function CoreUI({ world }) {
       {ready && <Sidebar world={world} ui={ui} />}
       {ready && <Chat world={world} />}
       {/* {ready && <Side world={world} player={player} menu={menu} />} */}
-      {/* {ready && menu?.type === 'app' && code && (
-        <CodeEditor key={`code-${menu.app.data.id}`} world={world} app={menu.app} blur={menu.blur} />
-      )} */}
       {avatar && <AvatarPane key={avatar.hash} world={world} info={avatar} />}
       {/* {apps && <AppsPane world={world} close={() => world.ui.toggleApps()} />} */}
       {!ready && <LoadingOverlay world={world} />}
@@ -336,7 +332,7 @@ function Chat({ world }) {
   const [active, setActive] = useState(false)
   useEffect(() => {
     const onToggle = () => {
-      setActive(!active)
+      setActive(value => !value)
     }
     world.on('sidebar-chat-toggle', onToggle)
     return () => {
@@ -420,11 +416,10 @@ function Chat({ world }) {
         }
         .mainchat-entry {
           height: 2.875rem;
-          padding: 0 0.8rem;
-          background: rgba(11, 10, 21, 0.85);
-          border: 0.0625rem solid #2a2b39;
-          border-radius: 1rem;
-          backdrop-filter: blur(5px);
+          padding: 0 1rem;
+          background: rgba(11, 10, 21, 0.9);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 2rem;
           display: flex;
           align-items: center;
 
@@ -436,7 +431,19 @@ function Chat({ world }) {
           input {
             font-size: 0.9375rem;
             line-height: 1;
+            &::selection {
+              background-color: white;
+              color: black;
+            }
           }
+        }
+        .mainchat-send {
+          width: 2.875rem;
+          height: 2.875rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-right: -0.6rem;
         }
         &.active {
           pointer-events: auto;
@@ -485,6 +492,11 @@ function Chat({ world }) {
             }
           }}
         />
+        {isTouch && (
+          <div className='mainchat-send' onClick={e => send(e)}>
+            <SendHorizonalIcon size='1.125rem' />
+          </div>
+        )}
       </label>
     </div>
   )
@@ -1143,7 +1155,9 @@ function TouchStick({ world }) {
         outer.style.top = `${stick.center.y}px`
         inner.style.left = `${stick.touch.position.x}px`
         inner.style.top = `${stick.touch.position.y}px`
+        inner.style.opacity = 1
       } else {
+        inner.style.opacity = 0.1
         const radius = 50 // matches PlayerLocal.js STICK_OUTER_RADIUS
         if (window.innerWidth < window.innerHeight) {
           // portrait
@@ -1249,10 +1263,10 @@ function Confirm({ options }) {
         z-index: 999;
         .confirm-dialog {
           pointer-events: auto;
-          background: rgba(11, 10, 21, 0.85);
-          border: 0.0625rem solid #2a2b39;
+          background: rgba(11, 10, 21, 0.9);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 1.375rem;
           backdrop-filter: blur(5px);
-          border-radius: 1rem;
           width: 18rem;
         }
         .confirm-content {
