@@ -131,6 +131,80 @@ fastify.get('/assets', async (req, reply) => {
   const html = fs.readFileSync(filePath, 'utf-8')
   reply.type('text/html').send(html)
 })
+
+// S3 sync endpoint - force sync world assets to S3
+fastify.post('/api/sync-s3-assets', async (request, reply) => {
+  try {
+    // Optional: Add authentication check here
+    // const authHeader = request.headers.authorization
+    // if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    //   return reply.code(401).send({ error: 'Unauthorized' })
+    // }
+    
+    if (process.env.ASSETS !== 's3') {
+      return reply.code(400).send({ error: 'S3 storage is not configured' })
+    }
+    
+    if (!assets.syncWorldAssets) {
+      return reply.code(400).send({ error: 'S3 sync not available' })
+    }
+    
+    console.log('[api] Starting S3 assets sync...')
+    const rootDir = path.join(__dirname, '../../')
+    const { recordHashes } = request.body || {}
+    const results = await assets.syncWorldAssets(rootDir, recordHashes)
+    
+    reply.code(200).send({
+      success: true,
+      message: 'S3 sync completed',
+      results
+    })
+  } catch (error) {
+    console.error('Error syncing S3 assets:', error)
+    reply.code(500).send({ error: 'Failed to sync S3 assets', details: error.message })
+  }
+})
+
+// S3 reset endpoint - clean bucket and re-upload seed assets
+fastify.post('/api/reset-s3-assets', async (request, reply) => {
+  try {
+    // Require admin authentication for this destructive operation
+    const adminPassword = process.env.ADMIN_PASSWORD
+    if (!adminPassword) {
+      return reply.code(500).send({ error: 'Admin password not configured on server' })
+    }
+    
+    const { password } = request.body || {}
+    if (!password) {
+      return reply.code(401).send({ error: 'Admin password required' })
+    }
+    
+    if (password !== adminPassword) {
+      return reply.code(403).send({ error: 'Invalid admin password' })
+    }
+    
+    if (process.env.ASSETS !== 's3') {
+      return reply.code(400).send({ error: 'S3 storage is not configured' })
+    }
+    
+    if (!assets.resetAndSync) {
+      return reply.code(400).send({ error: 'S3 reset not available' })
+    }
+    
+    console.log('[api] Starting S3 assets reset (admin authenticated)...')
+    const rootDir = path.join(__dirname, '../../')
+    const results = await assets.resetAndSync(rootDir)
+    
+    reply.code(200).send({
+      success: true,
+      message: 'S3 reset and sync completed',
+      results
+    })
+  } catch (error) {
+    console.error('Error resetting S3 assets:', error)
+    reply.code(500).send({ error: 'Failed to reset S3 assets', details: error.message })
+  }
+})
 fastify.register(statics, {
   root: path.join(__dirname, 'public'),
   prefix: '/',

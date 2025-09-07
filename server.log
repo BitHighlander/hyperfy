@@ -1,0 +1,56 @@
+
+> hyperfy@0.15.0 dev
+> node scripts/build.mjs --dev
+
+(node:83281) [DEP0180] DeprecationWarning: fs.Stats constructor is deprecated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:83286) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[db] migration #1
+[db] migration #2
+[db] migration #3
+[db] migration #4
+[db] migration #5
+[db] migration #6
+[db] migration #7
+[db] migration #8
+[db] migration #9
+[db] migration #10
+[db] migration #11
+[db] migration #12
+[db] migration #13
+[db] migration #14
+[db] migration #15
+[db] migration #16
+[db] migration #17
+[db] migration #18
+[db] migration #19
+[db] migration #20
+[db] migration #21
+[assets] initializing
+[assets] S3 Configuration: {
+  bucket: 'degencity',
+  prefix: 'assets//',
+  url: 'https://degencity.nyc3.digitaloceanspaces.com/assets',
+  endpoint: [AsyncFunction (anonymous)],
+  region: [AsyncFunction: region]
+}
+[assets] Successfully connected to S3 bucket
+[collections] initializing
+[clean] running
+[clean] complete
+server listening on port 4000
+(SyntaxError#1)
+SyntaxError#1: Unexpected token '<', "<?xml vers"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at GLTFLoader.parse (file:///Users/highlander/gamedev/degencity/projects/degen-city/src/core/libs/gltfloader/GLTFLoader.js:352:17)
+    at file:///Users/highlander/gamedev/degencity/projects/degen-city/src/core/systems/ServerLoader.js:112:27
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+SES_UNHANDLED_REJECTION: (SyntaxError#2)
+SyntaxError#2: Unexpected token '<', "<?xml vers"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at GLTFLoader.parse (file:///Users/highlander/gamedev/degencity/projects/degen-city/src/core/libs/gltfloader/GLTFLoader.js:352:17)
+    at file:///Users/highlander/gamedev/degencity/projects/degen-city/src/core/systems/ServerLoader.js:112:27
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+

@@ -35,6 +35,31 @@ const contentTypes = {
   zip: 'application/zip',
 }
 
+// Default assets to hide from gallery (will be populated with hashes)
+const DEFAULT_ASSET_NAMES = [
+  'ai.glb',
+  'ai.js',
+  'avatar.vrm',
+  'crash-block.glb',
+  'emote-fall.glb',
+  'emote-flip.glb',
+  'emote-float.glb',
+  'emote-jump.glb',
+  'emote-talk.glb',
+  'mp-idle.glb',
+  'mp-jog-back.glb',
+  'mp-jog-left.glb',
+  'mp-jog-right.glb',
+  'mp-jog.glb',
+  'mp-walk-back.glb',
+  'mp-walk-left.glb',
+  'mp-walk-right.glb',
+  'mp-walk.glb'
+]
+
+// This will store the hashes of seed assets
+let SEED_ASSET_HASHES = new Set()
+
 export class AssetsS3 {
   constructor() {
     this.url = process.env.ASSETS_BASE_URL
@@ -167,7 +192,7 @@ export class AssetsS3 {
 
     // Upload built-in assets from local directory to S3
     const builtInAssetsDir = path.join(rootDir, 'src/world/assets')
-    if (await fs.exists(builtInAssetsDir)) {
+    if (await fs.pathExists(builtInAssetsDir)) {
       await this.uploadDirectory(builtInAssetsDir, builtInAssetsDir)
     }
   }
@@ -206,8 +231,17 @@ export class AssetsS3 {
       const response = await this.client.send(new ListObjectsV2Command(params))
       const objects = response.Contents || []
       
-      // Filter out directories (keys ending with /)
-      const files = objects.filter(obj => !obj.Key.endsWith('/'))
+      // Filter out directories (keys ending with /) and seed assets
+      const files = objects.filter(obj => {
+        if (obj.Key.endsWith('/')) return false
+        const filename = obj.Key.replace(this.prefix, '')
+        // Filter by filename for default assets
+        if (DEFAULT_ASSET_NAMES.includes(filename)) return false
+        // Filter by hash (ETag) for seed assets
+        const hash = obj.ETag ? obj.ETag.replace(/"/g, '') : ''
+        if (SEED_ASSET_HASHES.has(hash)) return false
+        return true
+      })
       
       // Sort based on sortBy parameter
       let sortedFiles = [...files]
@@ -258,6 +292,180 @@ export class AssetsS3 {
     } catch (error) {
       console.error('[assets] Error listing S3 assets:', error)
       throw error
+    }
+  }
+
+  async cleanS3Bucket() {
+    console.log('[assets] Cleaning S3 bucket...')
+    const results = {
+      deleted: [],
+      failed: []
+    }
+    
+    try {
+      // List all objects in the bucket
+      let continuationToken = undefined
+      let hasMore = true
+      
+      while (hasMore) {
+        const listParams = {
+          Bucket: this.bucketName,
+          Prefix: this.prefix,
+          MaxKeys: 1000,
+          ContinuationToken: continuationToken
+        }
+        
+        const response = await this.client.send(new ListObjectsV2Command(listParams))
+        const objects = response.Contents || []
+        
+        if (objects.length > 0) {
+          // Delete objects in batches
+          const deleteParams = {
+            Bucket: this.bucketName,
+            Delete: {
+              Objects: objects.map(obj => ({ Key: obj.Key }))
+            }
+          }
+          
+          try {
+            await this.client.send(new DeleteObjectsCommand(deleteParams))
+            objects.forEach(obj => {
+              const filename = obj.Key.replace(this.prefix, '')
+              console.log(`[assets] Deleted: ${filename}`)
+              results.deleted.push(filename)
+            })
+          } catch (error) {
+            console.error('[assets] Failed to delete batch:', error.message)
+            objects.forEach(obj => {
+              results.failed.push({ file: obj.Key, error: error.message })
+            })
+          }
+        }
+        
+        hasMore = response.IsTruncated
+        continuationToken = response.NextContinuationToken
+      }
+      
+      console.log('[assets] S3 cleanup completed:', {
+        deleted: results.deleted.length,
+        failed: results.failed.length
+      })
+      
+      return results
+    } catch (error) {
+      console.error('[assets] S3 cleanup error:', error)
+      throw error
+    }
+  }
+
+  async syncWorldAssets(rootDir, recordHashes = false) {
+    console.log('[assets] Starting S3 sync...')
+    console.log('[assets] Root dir:', rootDir)
+    const results = {
+      uploaded: [],
+      failed: [],
+      skipped: [],
+      hashes: {}
+    }
+    
+    try {
+      // Clear seed hashes if we're recording new ones
+      if (recordHashes) {
+        SEED_ASSET_HASHES.clear()
+        console.log('[assets] Recording seed asset hashes...')
+      }
+      
+      // Upload built-in assets from local directory to S3
+      const builtInAssetsDir = path.join(rootDir, 'src/world/assets')
+      console.log('[assets] Checking for assets in:', builtInAssetsDir)
+      const exists = await fs.pathExists(builtInAssetsDir)
+      console.log('[assets] Directory exists:', exists)
+      if (exists) {
+        const files = await fs.readdir(builtInAssetsDir)
+        
+        for (const file of files) {
+          const filePath = path.join(builtInAssetsDir, file)
+          const stat = await fs.stat(filePath)
+          
+          if (!stat.isDirectory()) {
+            try {
+              // Skip very large files to avoid timeout
+              const fileSizeMB = stat.size / (1024 * 1024)
+              if (fileSizeMB > 50) {
+                console.log(`[assets] Skipping large file (${fileSizeMB.toFixed(2)}MB): ${file}`)
+                results.skipped.push({ file, reason: 'File too large (>50MB)' })
+                continue
+              }
+              
+              const buffer = await fs.readFile(filePath)
+              const hash = await hashFile(buffer)
+              const ext = file.split('.').pop().toLowerCase()
+              const filename = file // Keep original filename for default assets
+              
+              // Record hash if requested
+              if (recordHashes) {
+                SEED_ASSET_HASHES.add(hash)
+                results.hashes[filename] = hash
+              }
+              
+              // Upload to S3 (overwrite existing)
+              const key = this.prefix + filename
+              const command = new PutObjectCommand({
+                Bucket: this.bucketName,
+                Key: key,
+                Body: buffer,
+                ContentType: contentTypes[ext] || 'application/octet-stream',
+              })
+              
+              const uploadResult = await this.client.send(command)
+              const etag = uploadResult.ETag ? uploadResult.ETag.replace(/"/g, '') : hash
+              
+              console.log(`[assets] Uploaded: ${filename} (${(stat.size / 1024).toFixed(2)}KB) Hash: ${etag}`)
+              results.uploaded.push({ filename, hash: etag, size: stat.size })
+              
+              // Also record the ETag that S3 returns
+              if (recordHashes && etag) {
+                SEED_ASSET_HASHES.add(etag)
+              }
+            } catch (error) {
+              console.error(`[assets] Failed to upload ${file}:`, error.message)
+              results.failed.push({ file, error: error.message })
+            }
+          }
+        }
+      } else {
+        console.log('[assets] World assets directory not found:', builtInAssetsDir)
+      }
+      
+      console.log('[assets] S3 sync completed:', {
+        uploaded: results.uploaded.length,
+        failed: results.failed.length,
+        skipped: results.skipped.length,
+        seedHashes: recordHashes ? SEED_ASSET_HASHES.size : 0
+      })
+      
+      return results
+    } catch (error) {
+      console.error('[assets] S3 sync error:', error)
+      throw error
+    }
+  }
+
+  async resetAndSync(rootDir) {
+    console.log('[assets] Starting full S3 reset and sync...')
+    
+    // Step 1: Clean the bucket
+    console.log('[assets] Step 1: Cleaning S3 bucket...')
+    const cleanResults = await this.cleanS3Bucket()
+    
+    // Step 2: Sync world assets and record their hashes
+    console.log('[assets] Step 2: Syncing world assets and recording hashes...')
+    const syncResults = await this.syncWorldAssets(rootDir, true)
+    
+    return {
+      clean: cleanResults,
+      sync: syncResults,
+      seedHashesRecorded: SEED_ASSET_HASHES.size
     }
   }
 
