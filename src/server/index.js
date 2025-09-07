@@ -17,6 +17,7 @@ import { Storage } from './Storage'
 import { assets } from './assets'
 import { collections } from './collections'
 import { cleaner } from './cleaner'
+import { DegenQuestGameEngine } from '@degenquest/combat-plugin'
 
 const rootDir = path.join(__dirname, '../')
 const worldDir = path.join(rootDir, process.env.WORLD)
@@ -90,6 +91,42 @@ await world.init({
   storage,
   collections: collections.list,
 })
+
+// Install DegenQuest Game Engine
+if (!world.gameEngine) {
+  const gameEngine = DegenQuestGameEngine.install(world)
+  console.log('[Server] DegenQuest Game Engine installed - tracking all entities in memory')
+  
+  // The game engine will track entities as they join/spawn
+  // NPCs will register themselves when they initialize
+  
+  // Bridge game engine events to clients
+  world.events.on('combat:update', (data) => {
+    // Broadcast combat updates to all connected clients
+    if (world.network && world.network.send) {
+      world.network.send('combatUpdate', data)
+      console.log('[Server] Broadcasting combatUpdate to all clients')
+    }
+  })
+  
+  world.events.on('entity:death', (data) => {
+    // Broadcast death events to all connected clients
+    if (world.network && world.network.send) {
+      world.network.send('entityDeath', data)
+      console.log('[Server] Broadcasting entityDeath to all clients')
+    }
+  })
+  
+  world.events.on('entity:respawn', (data) => {
+    // Broadcast respawn events to all connected clients
+    if (world.network && world.network.send) {
+      world.network.send('entityRespawn', data)
+      console.log('[Server] Broadcasting entityRespawn to all clients')
+    }
+  })
+  
+  console.log('[Server] Game engine event bridge configured')
+}
 
 fastify.register(cors)
 fastify.register(compress)

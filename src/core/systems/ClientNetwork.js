@@ -213,6 +213,22 @@ export class ClientNetwork extends System {
     this.world.emit('kick', code)
   }
 
+  // Game Engine Combat Events
+  onCombatUpdate = data => {
+    // Forward to world events for UI to handle
+    this.world.events.emit('combat:update', data)
+  }
+
+  onEntityDeath = data => {
+    // Forward to world events for UI to handle
+    this.world.events.emit('entity:death', data)
+  }
+
+  onEntityRespawn = data => {
+    // Forward to world events for UI to handle
+    this.world.events.emit('entity:respawn', data)
+  }
+
   onClose = code => {
     this.world.chat.add({
       id: uuid(),
