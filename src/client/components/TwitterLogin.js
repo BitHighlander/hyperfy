@@ -117,75 +117,27 @@ export function TwitterLogin({ world }) {
         className='auth-buttons'
         css={css`
           position: absolute;
-          top: 1rem;
-          right: 1rem;
+          bottom: 1rem;
+          left: 1rem;
           z-index: 1000;
           display: flex;
           gap: 1rem;
           align-items: center;
+          pointer-events: auto !important;
         `}
+        onPointerDown={(e) => {
+          e.stopPropagation()
+          e.preventDefault()
+        }}
+        onPointerUp={(e) => {
+          e.stopPropagation()
+          e.preventDefault()
+        }}
+        onClick={(e) => {
+          e.stopPropagation()
+          e.preventDefault()
+        }}
       >
-        {/* Show Become Builder button for Twitter users who aren't builders yet */}
-        {isTwitterUser && !isBuilder && (
-          <button
-            onClick={handleBecomeBuilder}
-            disabled={upgradingToBuilder}
-            css={css`
-              padding: 0.75rem 1.5rem;
-              background: linear-gradient(135deg, #10b981, #059669);
-              color: white;
-              border: none;
-              border-radius: 2rem;
-              font-weight: 600;
-              cursor: pointer;
-              transition: all 0.3s ease;
-              box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-              display: flex;
-              align-items: center;
-              gap: 0.5rem;
-              
-              &:hover:not(:disabled) {
-                transform: translateY(-2px);
-                box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
-              }
-              
-              &:disabled {
-                opacity: 0.7;
-                cursor: not-allowed;
-              }
-              
-              &:active:not(:disabled) {
-                transform: translateY(0);
-              }
-            `}
-          >
-            {upgradingToBuilder ? (
-              <>
-                <span
-                  css={css`
-                    display: inline-block;
-                    width: 16px;
-                    height: 16px;
-                    border: 2px solid rgba(255, 255, 255, 0.3);
-                    border-top-color: white;
-                    border-radius: 50%;
-                    animation: spin 0.8s linear infinite;
-                    
-                    @keyframes spin {
-                      to { transform: rotate(360deg); }
-                    }
-                  `}
-                />
-                Upgrading...
-              </>
-            ) : (
-              <>
-                🔨 Become a Builder
-              </>
-            )}
-          </button>
-        )}
-
         {/* Show Builder badge if user is a builder */}
         {isBuilder && (
           <div
@@ -205,38 +157,90 @@ export function TwitterLogin({ world }) {
           </div>
         )}
 
-        {/* Sign In button for non-authenticated users */}
-        {!isAuthenticated && !showLogin && (
+        {/* Show Become Builder button for everyone who isn't a builder yet */}
+        {!isBuilder && (
           <button
-            onClick={() => setShowLogin(true)}
+            onClick={(e) => {
+              e.stopPropagation()
+              e.preventDefault()
+              if (isTwitterUser) {
+                // Already authenticated with Twitter, just upgrade rank
+                handleBecomeBuilder()
+              } else {
+                // Not authenticated, redirect to Twitter login
+                setLoading(true)
+                window.location.href = '/api/auth/twitter'
+              }
+            }}
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              e.preventDefault()
+            }}
+            onPointerUp={(e) => {
+              e.stopPropagation()
+              e.preventDefault()
+            }}
+            disabled={loading || upgradingToBuilder}
             css={css`
               padding: 0.75rem 1.5rem;
-              background: linear-gradient(135deg, #1da1f2, #0d8ae8);
+              background: linear-gradient(135deg, #10b981, #059669);
               color: white;
               border: none;
               border-radius: 2rem;
               font-weight: 600;
               cursor: pointer;
               transition: all 0.3s ease;
-              box-shadow: 0 4px 12px rgba(29, 161, 242, 0.3);
+              box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+              pointer-events: auto !important;
               
-              &:hover {
+              &:hover:not(:disabled) {
                 transform: translateY(-2px);
-                box-shadow: 0 6px 20px rgba(29, 161, 242, 0.4);
+                box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
               }
               
-              &:active {
+              &:disabled {
+                opacity: 0.7;
+                cursor: not-allowed;
+              }
+              
+              &:active:not(:disabled) {
                 transform: translateY(0);
               }
             `}
           >
-            Sign In
+            {loading || upgradingToBuilder ? (
+              <>
+                <span
+                  css={css`
+                    display: inline-block;
+                    width: 16px;
+                    height: 16px;
+                    border: 2px solid rgba(255, 255, 255, 0.3);
+                    border-top-color: white;
+                    border-radius: 50%;
+                    animation: spin 0.8s linear infinite;
+                    
+                    @keyframes spin {
+                      to { transform: rotate(360deg); }
+                    }
+                  `}
+                />
+                {isTwitterUser ? 'Upgrading...' : 'Connecting...'}
+              </>
+            ) : (
+              <>
+                🔨 Become a Builder
+              </>
+            )}
           </button>
         )}
       </div>
 
-      {/* Login Modal */}
-      {showLogin && (
+      {/* Login Modal - Removed, using direct Twitter login instead */}
+      {false && showLogin && (
         <div
           className='login-modal'
           css={css`
