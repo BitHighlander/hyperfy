@@ -53,6 +53,7 @@ const Modes = {
   FALL: 4,
   FLY: 5,
   TALK: 6,
+  COMBAT: 7,
 }
 
 export class PlayerLocal extends Entity {
@@ -117,6 +118,7 @@ export class PlayerLocal extends Entity {
     this.gaze = new THREE.Vector3()
 
     this.speaking = false
+    this.inCombat = false
 
     this.lastSendAt = 0
 
@@ -1010,6 +1012,8 @@ export class PlayerLocal extends Entity {
     let mode
     if (this.data.effect?.emote) {
       // emote = this.data.effect.emote
+    } else if (this.inCombat) {
+      mode = Modes.COMBAT
     } else if (this.flying) {
       mode = Modes.FLY
     } else if (this.airJumping) {
@@ -1197,6 +1201,12 @@ export class PlayerLocal extends Entity {
     if (this.speaking === speaking) return
     if (speaking && this.isMuted()) return
     this.speaking = speaking
+  }
+
+  setCombat(inCombat) {
+    if (this.inCombat === inCombat) return
+    this.inCombat = inCombat
+    console.log('[PlayerLocal] Combat state changed:', inCombat)
   }
 
   push(force) {

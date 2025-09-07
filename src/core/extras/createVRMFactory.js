@@ -49,6 +49,7 @@ const Modes = {
   FALL: 4,
   FLY: 5,
   TALK: 6,
+  COMBAT: 7,
 }
 
 export function createVRMFactory(glb, setupMaterial) {
@@ -595,6 +596,8 @@ export function createVRMFactory(glb, setupMaterial) {
         poses.fly.target = 1
       } else if (mode === Modes.TALK) {
         poses.talk.target = 1
+      } else if (mode === Modes.COMBAT) {
+        poses.attack.target = 1
       }
       const lerpSpeed = 16
       for (const key in poses) {
