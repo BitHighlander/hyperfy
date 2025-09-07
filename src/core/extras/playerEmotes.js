@@ -2,6 +2,7 @@ export const Emotes = {
   IDLE: 'asset://mp-idle.glb',
   WALK: 'asset://mp-walk.glb?s=1.5',
   ATTACK: 'asset://mp-attacking.glb?s=1.5',
+  DEATH: 'asset://mp-death.glb?s=3.5',
   WALK_LEFT: 'asset://mp-walk-left.glb?s=1.5',
   WALK_RIGHT: 'asset://mp-walk-right.glb?s=1.5',
   WALK_BACK: 'asset://mp-walk-back.glb?s=1.5',
@@ -31,4 +32,6 @@ export const emoteUrls = [
   Emotes.FLY,
   Emotes.FLIP,
   Emotes.TALK,
+  Emotes.ATTACK,
+  Emotes.DEATH,
 ]

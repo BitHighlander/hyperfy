@@ -54,6 +54,7 @@ const Modes = {
   FLY: 5,
   TALK: 6,
   COMBAT: 7,
+  DEATH: 8,
 }
 
 export class PlayerLocal extends Entity {
@@ -119,6 +120,7 @@ export class PlayerLocal extends Entity {
 
     this.speaking = false
     this.inCombat = false
+    this.isDead = false
 
     this.lastSendAt = 0
 
@@ -915,8 +917,8 @@ export class PlayerLocal extends Entity {
       this.setEffect(null)
     }
 
-    if (freeze || anchor) {
-      // cancel movement
+    if (freeze || anchor || this.isDead) {
+      // cancel movement when frozen, anchored, or dead
       this.moveDir.set(0, 0, 0)
       this.moving = false
     }
@@ -1010,7 +1012,9 @@ export class PlayerLocal extends Entity {
 
     // get locomotion mode
     let mode
-    if (this.data.effect?.emote) {
+    if (this.isDead) {
+      mode = Modes.DEATH
+    } else if (this.data.effect?.emote) {
       // emote = this.data.effect.emote
     } else if (this.inCombat) {
       mode = Modes.COMBAT
@@ -1262,6 +1266,20 @@ export class PlayerLocal extends Entity {
       this.nametag.health = data.health
       this.world.events.emit('health', { playerId: this.data.id, health: data.health })
       console.log('modify', data.health)
+      // Check for death
+      if (data.health <= 0 && !this.isDead) {
+        this.isDead = true
+        // Set death emote
+        this.setEffect({ emote: Emotes.DEATH, duration: null, cancellable: false })
+        this.world.events.emit('player:death', { playerId: this.data.id })
+        console.log('[PlayerLocal] Player died!')
+      } else if (data.health > 0 && this.isDead) {
+        this.isDead = false
+        // Clear death emote
+        this.setEffect(null)
+        this.world.events.emit('player:respawn', { playerId: this.data.id })
+        console.log('[PlayerLocal] Player respawned!')
+      }
       // changed = true
     }
     if (data.hasOwnProperty('avatar')) {
