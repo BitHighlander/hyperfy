@@ -1,23 +1,26 @@
 import fs from 'fs-extra'
 import path from 'path'
+import moment from 'moment'
 import { hashFile } from '../core/utils-server'
 
 export class AssetsLocal {
   constructor() {
     this.url = process.env.ASSETS_BASE_URL
     this.dir = null
+    this.db = null
   }
 
-  async init({ rootDir, worldDir }) {
+  async init({ rootDir, worldDir, db }) {
     console.log('[assets] initializing')
     this.dir = path.join(worldDir, '/assets')
+    this.db = db
     // ensure assets directory exists
     await fs.ensureDir(this.dir)
     // copy over built-in assets
     await fs.copy(path.join(rootDir, 'src/world/assets'), this.dir)
   }
 
-  async upload(file) {
+  async upload(file, uploaderData = null) {
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
     const hash = await hashFile(buffer)
@@ -25,8 +28,33 @@ export class AssetsLocal {
     const filename = `${hash}.${ext}`
     const assetPath = path.join(this.dir, filename)
     const exists = await fs.exists(assetPath)
-    if (exists) return
+    
+    // Track asset metadata in database
+    if (this.db && uploaderData) {
+      const now = moment().toISOString()
+      const fileStats = {
+        hash,
+        filename,
+        uploaderId: uploaderData.id || null,
+        uploaderName: uploaderData.name || 'Anonymous',
+        fileSize: buffer.length,
+        mimeType: file.type || 'application/octet-stream',
+        totalDegenVotes: 0,
+        rank: 0,
+        createdAt: now,
+        updatedAt: now
+      }
+      
+      // Check if metadata exists
+      const existing = await this.db('assets_metadata').where('hash', hash).first()
+      if (!existing) {
+        await this.db('assets_metadata').insert(fileStats)
+      }
+    }
+    
+    if (exists) return filename
     await fs.writeFile(assetPath, buffer)
+    return filename
   }
 
   async exists(filename) {

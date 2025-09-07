@@ -25,7 +25,7 @@ const clientHtmlDest = path.join(rootDir, 'build/public/index.html')
 
 {
   const clientCtx = await esbuild.context({
-    entryPoints: ['src/client/index.js', 'src/client/particles.js'],
+    entryPoints: ['src/client/index.js', 'src/client/particles.js', 'src/client/assets-index.js'],
     entryNames: '/[name]-[hash]',
     outdir: clientBuildDir,
     platform: 'browser',
@@ -67,12 +67,24 @@ const clientHtmlDest = path.join(rootDir, 'build/public/index.html')
             const particlesPath = outputFiles
               .find(file => file.includes('/particles-') && file.endsWith('.js'))
               .split('build/public')[1]
+            const assetsJsPath = outputFiles
+              .find(file => file.includes('/assets-index-') && file.endsWith('.js'))
+              ?.split('build/public')[1] || ''
             // inject into html and copy over
             let htmlContent = await fs.readFile(clientHtmlSrc, 'utf-8')
             htmlContent = htmlContent.replace('{jsPath}', jsPath)
             htmlContent = htmlContent.replace('{particlesPath}', particlesPath)
             htmlContent = htmlContent.replaceAll('{buildId}', Date.now())
             await fs.writeFile(clientHtmlDest, htmlContent)
+            // inject into assets.html if it exists
+            const assetsHtmlSrc = path.join(rootDir, 'src/client/public/assets.html')
+            if (await fs.pathExists(assetsHtmlSrc) && assetsJsPath) {
+              let assetsHtmlContent = await fs.readFile(assetsHtmlSrc, 'utf-8')
+              assetsHtmlContent = assetsHtmlContent.replace('{assetsJsPath}', assetsJsPath)
+              assetsHtmlContent = assetsHtmlContent.replaceAll('{buildId}', Date.now())
+              const assetsHtmlDest = path.join(rootDir, 'build/public/assets.html')
+              await fs.writeFile(assetsHtmlDest, assetsHtmlContent)
+            }
           })
         },
       },

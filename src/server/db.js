@@ -436,4 +436,36 @@ const migrations = [
       table.timestamp('lastLogin').nullable()
     })
   },
+  // add asset_votes table for DEGEN voting
+  async db => {
+    await db.schema.createTable('asset_votes', table => {
+      table.increments('id').primary()
+      table.string('assetHash').notNullable()
+      table.string('userId').notNullable()
+      table.integer('degenVotes').notNullable().defaultTo(1)
+      table.timestamp('createdAt').notNullable()
+      table.timestamp('updatedAt').notNullable()
+      table.unique(['assetHash', 'userId'])
+      table.index('assetHash')
+      table.index('userId')
+    })
+  },
+  // add assets_metadata table for tracking asset ownership and stats
+  async db => {
+    await db.schema.createTable('assets_metadata', table => {
+      table.string('hash').primary()
+      table.string('filename').notNullable()
+      table.string('uploaderId').nullable()
+      table.string('uploaderName').nullable()
+      table.integer('totalDegenVotes').notNullable().defaultTo(0)
+      table.integer('rank').notNullable().defaultTo(0)
+      table.integer('fileSize').nullable()
+      table.string('mimeType').nullable()
+      table.timestamp('createdAt').notNullable()
+      table.timestamp('updatedAt').notNullable()
+      table.index('uploaderId')
+      table.index('totalDegenVotes')
+      table.index('rank')
+    })
+  },
 ]

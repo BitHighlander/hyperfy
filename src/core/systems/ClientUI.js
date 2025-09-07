@@ -107,6 +107,16 @@ export class ClientUI extends System {
     return promise
   }
 
+  toggleApps() {
+    this.world.emit('apps', !this.world._appsOpen)
+    this.world._appsOpen = !this.world._appsOpen
+  }
+
+  toggleAssets() {
+    this.world.emit('assets', !this.world._assetsOpen)
+    this.world._assetsOpen = !this.world._assetsOpen
+  }
+
   broadcast() {
     this.world.emit('ui', { ...this.state })
   }

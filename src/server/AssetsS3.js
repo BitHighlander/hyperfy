@@ -7,6 +7,7 @@ import {
 } from '@aws-sdk/client-s3'
 import fs from 'fs-extra'
 import path from 'path'
+import moment from 'moment'
 import { hashFile } from '../core/utils-server'
 
 const contentTypes = {
@@ -37,6 +38,7 @@ const contentTypes = {
 export class AssetsS3 {
   constructor() {
     this.url = process.env.ASSETS_BASE_URL
+    this.db = null
 
     // Parse S3 URI: s3://access_key:secret_key@endpoint/bucket/prefix
     // or for AWS: s3://access_key:secret_key@bucket.s3.region.amazonaws.com/prefix
@@ -131,8 +133,9 @@ export class AssetsS3 {
     }
   }
 
-  async init({ rootDir, worldDir }) {
+  async init({ rootDir, worldDir, db }) {
     console.log('[assets] initializing')
+    this.db = db
     console.log('[assets] S3 Configuration:', {
       bucket: this.bucketName,
       prefix: this.prefix,
@@ -191,18 +194,42 @@ export class AssetsS3 {
     }
   }
 
-  async upload(file) {
+  async upload(file, uploaderData = null) {
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
     const hash = await hashFile(buffer)
     const ext = file.name.split('.').pop().toLowerCase()
     const filename = `${hash}.${ext}`
 
+    // Track asset metadata in database
+    if (this.db && uploaderData) {
+      const now = moment().toISOString()
+      const fileStats = {
+        hash,
+        filename,
+        uploaderId: uploaderData.id || null,
+        uploaderName: uploaderData.name || 'Anonymous',
+        fileSize: buffer.length,
+        mimeType: file.type || 'application/octet-stream',
+        totalDegenVotes: 0,
+        rank: 0,
+        createdAt: now,
+        updatedAt: now
+      }
+      
+      // Check if metadata exists
+      const existing = await this.db('assets_metadata').where('hash', hash).first()
+      if (!existing) {
+        await this.db('assets_metadata').insert(fileStats)
+      }
+    }
+
     // Check if file already exists
     const exists = await this.exists(filename)
-    if (exists) return
+    if (exists) return filename
 
     await this.uploadBuffer(buffer, filename)
+    return filename
   }
 
   async uploadBuffer(buffer, filename) {

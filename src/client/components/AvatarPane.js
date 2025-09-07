@@ -85,11 +85,16 @@ export function AvatarPane({ world, info }) {
           align-items: center;
           justify-content: center;
           font-size: 0.9375rem;
+          color: rgba(0, 255, 255, 0.7);
+          transition: all 0.3s ease;
           &.bl {
-            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 1px solid rgba(0, 255, 255, 0.2);
           }
           &:hover {
             cursor: pointer;
+            background: rgba(0, 255, 255, 0.1);
+            color: #00ffff;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
           }
         }
       `}

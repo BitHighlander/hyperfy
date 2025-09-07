@@ -66,14 +66,14 @@ const fastify = Fastify({ logger: { level: 'error' } })
 // create world folder if needed
 await fs.ensureDir(worldDir)
 
+// init db
+const db = await getDB({ worldDir })
+
 // init assets
-await assets.init({ rootDir, worldDir })
+await assets.init({ rootDir, worldDir, db })
 
 // init collections
 await collections.init({ rootDir, worldDir })
-
-// init db
-const db = await getDB({ worldDir })
 
 // init cleaner
 await cleaner.init({ db })
@@ -108,6 +108,27 @@ fastify.get('/', async (req, reply) => {
   html = html.replaceAll('{title}', title)
   html = html.replaceAll('{desc}', desc)
   html = html.replaceAll('{image}', image)
+  reply.type('text/html').send(html)
+})
+
+// Privacy Policy route
+fastify.get('/privacy', async (req, reply) => {
+  const filePath = path.join(__dirname, 'public', 'privacy.html')
+  const html = fs.readFileSync(filePath, 'utf-8')
+  reply.type('text/html').send(html)
+})
+
+// Terms of Service route
+fastify.get('/terms', async (req, reply) => {
+  const filePath = path.join(__dirname, 'public', 'terms.html')
+  const html = fs.readFileSync(filePath, 'utf-8')
+  reply.type('text/html').send(html)
+})
+
+// Assets Gallery route
+fastify.get('/assets', async (req, reply) => {
+  const filePath = path.join(__dirname, 'public', 'assets.html')
+  const html = fs.readFileSync(filePath, 'utf-8')
   reply.type('text/html').send(html)
 })
 fastify.register(statics, {
@@ -306,6 +327,220 @@ fastify.post('/api/upgrade-to-builder', async (request, reply) => {
   } catch (error) {
     console.error('Error upgrading to builder:', error)
     reply.code(500).send({ error: 'Failed to upgrade to builder' })
+  }
+})
+
+// Assets API endpoints
+fastify.get('/api/assets', async (request, reply) => {
+  try {
+    const { page = 1, limit = 50, sortBy = 'rank' } = request.query
+    const offset = (page - 1) * limit
+    
+    // Get assets with metadata from database
+    let query = db('assets_metadata')
+    
+    // Apply sorting
+    if (sortBy === 'rank') {
+      query = query.orderBy('rank', 'desc').orderBy('totalDegenVotes', 'desc')
+    } else if (sortBy === 'votes') {
+      query = query.orderBy('totalDegenVotes', 'desc')
+    } else if (sortBy === 'newest') {
+      query = query.orderBy('createdAt', 'desc')
+    } else if (sortBy === 'oldest') {
+      query = query.orderBy('createdAt', 'asc')
+    }
+    
+    // Get paginated results
+    const assetsData = await query.limit(limit).offset(offset)
+    
+    // Get total count for pagination
+    const countResult = await db('assets_metadata').count('* as total').first()
+    const totalCount = countResult.total
+    
+    // Format response
+    const response = {
+      assets: assetsData.map(asset => ({
+        hash: asset.hash,
+        filename: asset.filename,
+        url: `${assets.url}/${asset.filename}`,
+        uploaderId: asset.uploaderId,
+        uploaderName: asset.uploaderName,
+        fileSize: asset.fileSize,
+        mimeType: asset.mimeType,
+        totalDegenVotes: asset.totalDegenVotes,
+        rank: asset.rank,
+        createdAt: asset.createdAt,
+        updatedAt: asset.updatedAt
+      })),
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit)
+      }
+    }
+    
+    reply.code(200).send(response)
+  } catch (error) {
+    console.error('Error fetching assets:', error)
+    reply.code(500).send({ error: 'Failed to fetch assets' })
+  }
+})
+
+// Vote for an asset endpoint
+fastify.post('/api/assets/:hash/vote', async (request, reply) => {
+  try {
+    const { hash } = request.params
+    const { degenVotes = 1 } = request.body
+    
+    // Get user from auth token
+    const authHeader = request.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return reply.code(401).send({ error: 'Unauthorized' })
+    }
+    
+    const token = authHeader.substring(7)
+    const { readJWT } = await import('../core/utils-server')
+    const tokenData = await readJWT(token)
+    if (!tokenData) {
+      return reply.code(401).send({ error: 'Invalid token' })
+    }
+    
+    const userId = tokenData.id || tokenData.userId
+    
+    // Verify user exists and is Twitter authenticated
+    const user = await db('users').where('id', userId).first()
+    if (!user) {
+      return reply.code(404).send({ error: 'User not found' })
+    }
+    
+    if (user.provider !== 'twitter') {
+      return reply.code(403).send({ error: 'Only Twitter authenticated users can vote' })
+    }
+    
+    // Validate degenVotes (1-100)
+    const votes = Math.max(1, Math.min(100, parseInt(degenVotes)))
+    
+    // Check if asset exists
+    const asset = await db('assets_metadata').where('hash', hash).first()
+    if (!asset) {
+      return reply.code(404).send({ error: 'Asset not found' })
+    }
+    
+    const { moment } = await import('moment')
+    const now = moment().toISOString()
+    
+    // Check if user has already voted for this asset
+    const existingVote = await db('asset_votes')
+      .where('assetHash', hash)
+      .where('userId', userId)
+      .first()
+    
+    if (existingVote) {
+      // Update existing vote
+      const voteDiff = votes - existingVote.degenVotes
+      await db('asset_votes')
+        .where('id', existingVote.id)
+        .update({
+          degenVotes: votes,
+          updatedAt: now
+        })
+      
+      // Update asset total votes
+      await db('assets_metadata')
+        .where('hash', hash)
+        .update({
+          totalDegenVotes: asset.totalDegenVotes + voteDiff,
+          updatedAt: now
+        })
+    } else {
+      // Create new vote
+      await db('asset_votes').insert({
+        assetHash: hash,
+        userId: userId,
+        degenVotes: votes,
+        createdAt: now,
+        updatedAt: now
+      })
+      
+      // Update asset total votes
+      await db('assets_metadata')
+        .where('hash', hash)
+        .update({
+          totalDegenVotes: asset.totalDegenVotes + votes,
+          updatedAt: now
+        })
+    }
+    
+    // Update asset rankings
+    await updateAssetRankings()
+    
+    // Get updated asset data
+    const updatedAsset = await db('assets_metadata').where('hash', hash).first()
+    
+    reply.code(200).send({
+      success: true,
+      message: existingVote ? 'Vote updated' : 'Vote recorded',
+      asset: {
+        hash: updatedAsset.hash,
+        totalDegenVotes: updatedAsset.totalDegenVotes,
+        rank: updatedAsset.rank
+      }
+    })
+  } catch (error) {
+    console.error('Error voting for asset:', error)
+    reply.code(500).send({ error: 'Failed to vote for asset' })
+  }
+})
+
+// Function to update asset rankings based on total votes
+async function updateAssetRankings() {
+  const assets = await db('assets_metadata')
+    .orderBy('totalDegenVotes', 'desc')
+    .orderBy('createdAt', 'asc')
+  
+  for (let i = 0; i < assets.length; i++) {
+    await db('assets_metadata')
+      .where('hash', assets[i].hash)
+      .update({ rank: i + 1 })
+  }
+}
+
+// Get user's votes for assets
+fastify.get('/api/assets/my-votes', async (request, reply) => {
+  try {
+    // Get user from auth token
+    const authHeader = request.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return reply.code(401).send({ error: 'Unauthorized' })
+    }
+    
+    const token = authHeader.substring(7)
+    const { readJWT } = await import('../core/utils-server')
+    const tokenData = await readJWT(token)
+    if (!tokenData) {
+      return reply.code(401).send({ error: 'Invalid token' })
+    }
+    
+    const userId = tokenData.id || tokenData.userId
+    
+    // Get user's votes
+    const votes = await db('asset_votes')
+      .where('userId', userId)
+      .join('assets_metadata', 'asset_votes.assetHash', 'assets_metadata.hash')
+      .select(
+        'asset_votes.*',
+        'assets_metadata.filename',
+        'assets_metadata.uploaderName',
+        'assets_metadata.totalDegenVotes',
+        'assets_metadata.rank'
+      )
+      .orderBy('asset_votes.createdAt', 'desc')
+    
+    reply.code(200).send({ votes })
+  } catch (error) {
+    console.error('Error fetching user votes:', error)
+    reply.code(500).send({ error: 'Failed to fetch user votes' })
   }
 })
 

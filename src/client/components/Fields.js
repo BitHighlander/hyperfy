@@ -35,7 +35,8 @@ export function FieldText({ label, hint, placeholder, value, onChange }) {
           text-overflow: ellipsis;
           overflow: hidden;
           font-size: 0.9375rem;
-          color: rgba(255, 255, 255, 0.6);
+          color: rgba(0, 255, 255, 0.6);
+          text-shadow: 0 0 3px rgba(0, 255, 255, 0.3);
         }
         .fieldtext-field {
           flex: 1;
@@ -116,7 +117,8 @@ export function FieldTextarea({ label, hint, placeholder, value, onChange }) {
           text-overflow: ellipsis;
           overflow: hidden;
           font-size: 0.9375rem;
-          color: rgba(255, 255, 255, 0.6);
+          color: rgba(0, 255, 255, 0.6);
+          text-shadow: 0 0 3px rgba(0, 255, 255, 0.3);
         }
         .fieldtextarea-field {
           flex: 1;
@@ -197,7 +199,8 @@ export function FieldSwitch({ label, hint, options, value, onChange }) {
           overflow: hidden;
           padding-right: 1rem;
           font-size: 0.9375rem;
-          color: rgba(255, 255, 255, 0.6);
+          color: rgba(0, 255, 255, 0.6);
+          text-shadow: 0 0 3px rgba(0, 255, 255, 0.3);
         }
         .fieldswitch-btn {
           width: 2.125rem;
@@ -255,7 +258,8 @@ export function FieldToggle({ label, hint, trueLabel = 'Yes', falseLabel = 'No',
           overflow: hidden;
           padding-right: 1rem;
           font-size: 0.9375rem;
-          color: rgba(255, 255, 255, 0.6);
+          color: rgba(0, 255, 255, 0.6);
+          text-shadow: 0 0 3px rgba(0, 255, 255, 0.3);
         }
         .fieldtoggle-text {
           font-size: 0.9375rem;
@@ -353,7 +357,8 @@ export function FieldRange({ label, hint, min = 0, max = 1, step = 0.05, instant
           text-overflow: ellipsis;
           overflow: hidden;
           font-size: 0.9375rem;
-          color: rgba(255, 255, 255, 0.6);
+          color: rgba(0, 255, 255, 0.6);
+          text-shadow: 0 0 3px rgba(0, 255, 255, 0.3);
           padding-right: 1rem;
         }
         .fieldrange-text {
@@ -535,7 +540,8 @@ export function FieldFile({ world, label, hint, kind: kindName, value, onChange 
           overflow: hidden;
           padding-right: 1rem;
           font-size: 0.9375rem;
-          color: rgba(255, 255, 255, 0.6);
+          color: rgba(0, 255, 255, 0.6);
+          text-shadow: 0 0 3px rgba(0, 255, 255, 0.3);
         }
         .fieldfile-placeholder {
           color: rgba(255, 255, 255, 0.3);
@@ -654,7 +660,8 @@ export function FieldNumber({
           text-overflow: ellipsis;
           overflow: hidden;
           font-size: 0.9375rem;
-          color: rgba(255, 255, 255, 0.6);
+          color: rgba(0, 255, 255, 0.6);
+          text-shadow: 0 0 3px rgba(0, 255, 255, 0.3);
         }
         .fieldnumber-field {
           flex: 1;
@@ -778,7 +785,8 @@ export function FieldVec3({
           text-overflow: ellipsis;
           overflow: hidden;
           font-size: 0.9375rem;
-          color: rgba(255, 255, 255, 0.6);
+          color: rgba(0, 255, 255, 0.6);
+          text-shadow: 0 0 3px rgba(0, 255, 255, 0.3);
         }
         .fieldvec3-field {
           flex: 1;
@@ -950,7 +958,8 @@ export function FieldCurve({ label, hint, x, xRange, y, yMin, yMax, value, onCha
           overflow: hidden;
           padding-right: 1rem;
           font-size: 0.9375rem;
-          color: rgba(255, 255, 255, 0.6);
+          color: rgba(0, 255, 255, 0.6);
+          text-shadow: 0 0 3px rgba(0, 255, 255, 0.3);
         }
         .fieldcurve-curve {
           width: 6rem;
@@ -1020,15 +1029,23 @@ export function FieldBtn({ label, note, hint, nav, onClick }) {
           text-overflow: ellipsis;
           overflow: hidden;
           font-size: 0.9375rem;
-          color: rgba(255, 255, 255, 0.6);
+          color: rgba(0, 255, 255, 0.6);
+          text-shadow: 0 0 3px rgba(0, 255, 255, 0.3);
         }
         .fieldbtn-note {
           font-size: 0.9375rem;
-          color: rgba(255, 255, 255, 0.4);
+          color: rgba(255, 0, 255, 0.5);
+          text-shadow: 0 0 3px rgba(255, 0, 255, 0.3);
         }
         &:hover {
           cursor: pointer;
-          background: rgba(255, 255, 255, 0.03);
+          background: rgba(0, 255, 255, 0.05);
+          border-left: 2px solid #00ffff;
+          padding-left: calc(1rem - 2px);
+          .fieldbtn-label {
+            color: #00ffff;
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.6);
+          }
         }
       `}
       onPointerEnter={() => setHint(hint)}
@@ -1170,7 +1187,8 @@ export function FieldColor({ label, hint, value, onChange }) {
           text-overflow: ellipsis;
           overflow: hidden;
           font-size: 0.9375rem;
-          color: rgba(255, 255, 255, 0.6);
+          color: rgba(0, 255, 255, 0.6);
+          text-shadow: 0 0 3px rgba(0, 255, 255, 0.3);
         }
         .fieldcolor-preview {
           flex: 1;

@@ -73,11 +73,13 @@ const e1 = new THREE.Euler(0, 0, 0, 'YXZ')
 const q1 = new THREE.Quaternion()
 
 /**
- * frosted
+ * frosted cyberpunk theme
  * 
 background: rgba(11, 10, 21, 0.85); 
-border: 0.0625rem solid #2a2b39;
-backdrop-filter: blur(5px);
+border: 2px solid;
+border-image: linear-gradient(135deg, #00ffff, #ff00ff) 1;
+backdrop-filter: blur(10px);
+box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
  *
  */
 
@@ -261,14 +263,18 @@ function Section({ active, top, bottom, children }) {
     <div
       className={cls('sidebar-section', { active, top, bottom })}
       css={css`
-        background: rgba(11, 10, 21, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(11, 10, 21, 0.3);
+        border: 2px solid;
+        border-image: linear-gradient(135deg, #00ffff22, #ff00ff22) 1;
         border-radius: 2rem;
         padding: 0.6875rem 0;
         pointer-events: auto;
         position: relative;
+        transition: all 0.3s ease;
         &.active {
           background: rgba(11, 10, 21, 0.9);
+          border-image: linear-gradient(135deg, #00ffff, #ff00ff) 1;
+          box-shadow: 0 0 25px rgba(0, 255, 255, 0.4), inset 0 0 15px rgba(255, 0, 255, 0.1);
         }
       `}
     >
@@ -287,8 +293,9 @@ function Btn({ disabled, suspended, active, muted, children, ...props }) {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
+        color: rgba(0, 255, 255, 0.6);
         position: relative;
+        transition: all 0.3s ease;
         .sidebar-btn-dot {
           display: none;
           position: absolute;
@@ -301,12 +308,16 @@ function Btn({ disabled, suspended, active, muted, children, ...props }) {
         }
         &:hover {
           cursor: pointer;
-          color: white;
+          color: #00ffff;
+          text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
         }
         &.active {
-          color: white;
+          color: #00ffff;
+          text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
           .sidebar-btn-dot {
             display: block;
+            background: #00ffff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
           }
         }
         &.suspended {
@@ -319,7 +330,8 @@ function Btn({ disabled, suspended, active, muted, children, ...props }) {
           color: rgba(255, 255, 255, 0.3);
         }
         &.muted {
-          color: #ff4b4b;
+          color: #ff00ff;
+          text-shadow: 0 0 10px rgba(255, 0, 255, 0.6);
         }
       `}
       {...props}
@@ -502,7 +514,10 @@ function Prefs({ world, hidden }) {
         css={css`
           overflow-y: auto;
           background: rgba(11, 10, 21, 0.9);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          border: 2px solid;
+          border-image: linear-gradient(135deg, #00ffff, #ff00ff, #00ff00) 1;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 0 25px rgba(0, 255, 255, 0.4), inset 0 0 20px rgba(255, 0, 255, 0.1);
           border-radius: 1.375rem;
           padding: 0.6rem 0;
         `}
@@ -671,7 +686,10 @@ function World({ world, hidden }) {
         className='world'
         css={css`
           background: rgba(11, 10, 21, 0.9);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          border: 2px solid;
+          border-image: linear-gradient(135deg, #00ffff, #ff00ff, #00ff00) 1;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 0 25px rgba(0, 255, 255, 0.4), inset 0 0 20px rgba(255, 0, 255, 0.1);
           border-radius: 1.375rem;
           display: flex;
           flex-direction: column;
@@ -812,7 +830,10 @@ function Apps({ world, hidden }) {
         className='apps'
         css={css`
           background: rgba(11, 10, 21, 0.9);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          border: 2px solid;
+          border-image: linear-gradient(135deg, #00ffff, #ff00ff, #00ff00) 1;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 0 25px rgba(0, 255, 255, 0.4), inset 0 0 20px rgba(255, 0, 255, 0.1);
           border-radius: 1.375rem;
           flex: 1;
           display: flex;
@@ -928,7 +949,10 @@ function Add({ world, hidden }) {
         className='add'
         css={css`
           background: rgba(11, 10, 21, 0.9);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          border: 2px solid;
+          border-image: linear-gradient(135deg, #00ffff, #ff00ff, #00ff00) 1;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 0 25px rgba(0, 255, 255, 0.4), inset 0 0 20px rgba(255, 0, 255, 0.1);
           border-radius: 1.375rem;
           display: flex;
           flex-direction: column;
@@ -1073,7 +1097,10 @@ function App({ world, hidden }) {
         className='app'
         css={css`
           background: rgba(11, 10, 21, 0.9);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          border: 2px solid;
+          border-image: linear-gradient(135deg, #00ffff, #ff00ff, #00ff00) 1;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 0 25px rgba(0, 255, 255, 0.4), inset 0 0 20px rgba(255, 0, 255, 0.1);
           border-radius: 1.375rem;
           display: flex;
           flex-direction: column;
@@ -1591,7 +1618,10 @@ function Nodes({ world, hidden }) {
         css={css`
           flex: 1;
           background: rgba(11, 10, 21, 0.9);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          border: 2px solid;
+          border-image: linear-gradient(135deg, #00ffff, #ff00ff, #00ff00) 1;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 0 25px rgba(0, 255, 255, 0.4), inset 0 0 20px rgba(255, 0, 255, 0.1);
           border-radius: 1.375rem;
           min-height: 23.7rem;
           display: flex;
@@ -1644,7 +1674,10 @@ function Meta({ world, hidden }) {
         css={css`
           flex: 1;
           background: rgba(11, 10, 21, 0.9);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          border: 2px solid;
+          border-image: linear-gradient(135deg, #00ffff, #ff00ff, #00ff00) 1;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 0 25px rgba(0, 255, 255, 0.4), inset 0 0 20px rgba(255, 0, 255, 0.1);
           border-radius: 1.375rem;
           display: flex;
           flex-direction: column;
@@ -1771,7 +1804,10 @@ function Players({ world, hidden }) {
         className='players'
         css={css`
           background: rgba(11, 10, 21, 0.9);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          border: 2px solid;
+          border-image: linear-gradient(135deg, #00ffff, #ff00ff, #00ff00) 1;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 0 25px rgba(0, 255, 255, 0.4), inset 0 0 20px rgba(255, 0, 255, 0.1);
           border-radius: 1.375rem;
           display: flex;
           flex-direction: column;

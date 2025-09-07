@@ -4,6 +4,7 @@ import { ChevronUpIcon, LoaderIcon, MessageSquareTextIcon, RefreshCwIcon, SendHo
 import moment from 'moment'
 
 import { AvatarPane } from './AvatarPane'
+import { AssetsPane } from './AssetsPane'
 import { useElemSize } from './useElemSize'
 import { MouseLeftIcon } from './MouseLeftIcon'
 import { MouseRightIcon } from './MouseRightIcon'
@@ -31,6 +32,7 @@ export function CoreUI({ world }) {
   const [avatar, setAvatar] = useState(null)
   const [disconnected, setDisconnected] = useState(false)
   const [apps, setApps] = useState(false)
+  const [assets, setAssets] = useState(false)
   const [kicked, setKicked] = useState(null)
   useEffect(() => {
     world.on('ready', setReady)
@@ -40,6 +42,7 @@ export function CoreUI({ world }) {
     world.on('confirm', setConfirm)
     world.on('code', setCode)
     world.on('apps', setApps)
+    world.on('assets', setAssets)
     world.on('avatar', setAvatar)
     world.on('kick', setKicked)
     world.on('disconnect', setDisconnected)
@@ -51,6 +54,7 @@ export function CoreUI({ world }) {
       world.off('confirm', setConfirm)
       world.off('code', setCode)
       world.off('apps', setApps)
+      world.off('assets', setAssets)
       world.off('avatar', setAvatar)
       world.off('kick', setKicked)
       world.off('disconnect', setDisconnected)
@@ -103,6 +107,7 @@ export function CoreUI({ world }) {
       {/* {ready && <Side world={world} player={player} menu={menu} />} */}
       {avatar && <AvatarPane key={avatar.hash} world={world} info={avatar} />}
       {/* {apps && <AppsPane world={world} close={() => world.ui.toggleApps()} />} */}
+      {assets && <AssetsPane world={world} close={() => world.ui.toggleAssets()} />}
       {!ready && <LoadingOverlay world={world} />}
       {kicked && <KickedOverlay code={kicked} />}
       {ready && isTouch && <TouchBtns world={world} />}
@@ -409,8 +414,10 @@ function Chat({ world }) {
           align-items: center;
           justify-content: center;
           background: rgba(11, 10, 21, 0.85);
-          border: 0.0625rem solid #2a2b39;
+          border: 2px solid;
+          border-image: linear-gradient(135deg, #00ffff, #ff00ff) 1;
           border-radius: 1rem;
+          box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
           &:hover {
             cursor: pointer;
           }
@@ -420,8 +427,11 @@ function Chat({ world }) {
           height: 2.875rem;
           padding: 0 1rem;
           background: rgba(11, 10, 21, 0.9);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          backdrop-filter: blur(10px);
+          border: 2px solid;
+          border-image: linear-gradient(135deg, #00ffff, #ff00ff, #00ff00) 1;
           border-radius: 2rem;
+          box-shadow: 0 0 20px rgba(0, 255, 255, 0.3), inset 0 0 20px rgba(255, 0, 255, 0.1);
           display: flex;
           align-items: center;
 
@@ -635,9 +645,12 @@ function Message({ msg, now }) {
         -webkit-text-stroke: 0.25rem rgba(0, 0, 0, 0.2);
         .message-from {
           margin-right: 0.25rem;
+          color: #ff00ff;
+          text-shadow: 0 0 5px rgba(255, 0, 255, 0.6);
         }
         .message-body {
-          // ...
+          color: #00ffff;
+          text-shadow: 0 0 3px rgba(0, 255, 255, 0.4);
         }
       `}
     >
@@ -685,9 +698,11 @@ function Disconnected() {
           top: 50%;
           left: 50%;
           background: rgba(11, 10, 21, 0.85);
-          border: 0.0625rem solid #2a2b39;
-          backdrop-filter: blur(5px);
+          border: 2px solid;
+          border-image: linear-gradient(135deg, #00ffff, #ff00ff) 1;
+          backdrop-filter: blur(10px);
           border-radius: 1rem;
+          box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
           height: 2.75rem;
           padding: 0 1rem;
           transform: translate(-50%, -50%);
@@ -762,17 +777,24 @@ function LoadingOverlay({ world }) {
           line-height: 1.2;
           font-weight: 600;
           margin: 0 0 0.5rem;
+          background: linear-gradient(135deg, #00ffff, #ff00ff);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
         }
         .loading-desc {
-          color: rgba(255, 255, 255, 0.9);
+          color: rgba(0, 255, 255, 0.9);
           font-size: 1rem;
           margin: 0 0 20px;
+          text-shadow: 0 0 5px rgba(0, 255, 255, 0.3);
         }
         .loading-track {
           height: 5px;
           border-radius: 3px;
           background: rgba(255, 255, 255, 0.1);
           position: relative;
+          box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.2);
         }
         .loading-bar {
           position: absolute;
@@ -780,9 +802,10 @@ function LoadingOverlay({ world }) {
           left: 0;
           bottom: 0;
           width: ${progress}%;
-          background: white;
+          background: linear-gradient(90deg, #00ffff, #ff00ff, #00ff00);
           border-radius: 3px;
           transition: width 0.2s ease-out;
+          box-shadow: 0 0 20px rgba(0, 255, 255, 0.6), 0 0 40px rgba(255, 0, 255, 0.4);
         }
       `}
     >
@@ -891,6 +914,8 @@ function Actions({ world }) {
           }
           &-label {
             margin-left: 0.625em;
+            color: #00ffff;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
             paint-order: stroke fill;
             -webkit-text-stroke: 0.25rem rgba(0, 0, 0, 0.2);
           }
@@ -934,14 +959,15 @@ function ActionPill({ label }) {
     <div
       className='actionpill'
       css={css`
-        border: 0.0625rem solid white;
+        border: 2px solid;
+        border-image: linear-gradient(135deg, #00ffff, #ff00ff) 1;
         border-radius: 0.25rem;
-        background: rgba(0, 0, 0, 0.1);
+        background: rgba(11, 10, 21, 0.8);
         padding: 0.25rem 0.375rem;
         font-size: 0.875em;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-        paint-order: stroke fill;
-        -webkit-text-stroke: 0.25rem rgba(0, 0, 0, 0.2);
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.4), inset 0 0 10px rgba(255, 0, 255, 0.1);
+        color: #00ffff;
+        text-shadow: 0 0 5px rgba(0, 255, 255, 0.6);
       `}
     >
       {label}
@@ -992,10 +1018,9 @@ function Reticle({ world }) {
           width: 0.25rem;
           height: 0.25rem;
           border-radius: 0.625rem;
-          /* border: 0.125rem solid ${buildMode ? '#ff4d4d' : 'white'}; */
-          background: ${buildMode ? '#ff4d4d' : 'white'};
+          background: ${buildMode ? '#ff00ff' : '#00ffff'};
           border: 0.5px solid rgba(0, 0, 0, 0.3);
-          /* mix-blend-mode: ${buildMode ? 'normal' : 'difference'}; */
+          box-shadow: 0 0 10px ${buildMode ? 'rgba(255, 0, 255, 0.8)' : 'rgba(0, 255, 255, 0.8)'};
         }
       `}
     >
@@ -1042,9 +1067,11 @@ function Toast({ world }) {
           justify-content: center;
           padding: 0 1rem;
           background: rgba(11, 10, 21, 0.85);
-          border: 0.0625rem solid #2a2b39;
-          backdrop-filter: blur(5px);
+          border: 2px solid;
+          border-image: linear-gradient(135deg, #00ffff, #ff00ff, #00ff00) 1;
+          backdrop-filter: blur(10px);
           border-radius: 1.4375rem;
+          box-shadow: 0 0 25px rgba(0, 255, 255, 0.4), inset 0 0 15px rgba(255, 0, 255, 0.1);
           opacity: 0;
           transform: translateY(0.625rem) scale(0.9);
           transition: all 0.1s ease-in-out;
@@ -1266,9 +1293,11 @@ function Confirm({ options }) {
         .confirm-dialog {
           pointer-events: auto;
           background: rgba(11, 10, 21, 0.9);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          border: 2px solid;
+          border-image: linear-gradient(135deg, #00ffff, #ff00ff) 1;
           border-radius: 1.375rem;
-          backdrop-filter: blur(5px);
+          backdrop-filter: blur(10px);
+          box-shadow: 0 0 30px rgba(0, 255, 255, 0.4), inset 0 0 20px rgba(255, 0, 255, 0.1);
           width: 18rem;
         }
         .confirm-content {
@@ -1279,6 +1308,8 @@ function Confirm({ options }) {
           font-size: 1.1rem;
           font-weight: 500;
           margin: 0 0 0.7rem;
+          color: #00ffff;
+          text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
         }
         .confirm-message {
           text-align: center;
@@ -1287,7 +1318,7 @@ function Confirm({ options }) {
           line-height: 1.4;
         }
         .confirm-actions {
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
+          border-top: 1px solid rgba(0, 255, 255, 0.3);
           display: flex;
           align-items: stretch;
         }
@@ -1298,16 +1329,18 @@ function Confirm({ options }) {
           align-items: center;
           justify-content: center;
           &.left {
-            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            border-right: 1px solid rgba(0, 255, 255, 0.3);
           }
           > span {
             font-size: 0.9375rem;
-            color: rgba(255, 255, 255, 0.8);
+            color: rgba(0, 255, 255, 0.8);
+            transition: all 0.3s ease;
           }
           &:hover {
             cursor: pointer;
             > span {
-              color: white;
+              color: #00ffff;
+              text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
             }
           }
         }

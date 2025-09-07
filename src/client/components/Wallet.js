@@ -55,7 +55,10 @@ function Styles({ children }) {
         }
 
         .wallet-adapter-button-trigger {
-          background-color: #512da8;
+          background: linear-gradient(135deg, #00ffff, #ff00ff);
+          border: 2px solid;
+          border-image: linear-gradient(135deg, #00ffff, #ff00ff) 1;
+          box-shadow: 0 0 20px rgba(0, 255, 255, 0.4), inset 0 0 15px rgba(255, 0, 255, 0.1);
         }
 
         .wallet-adapter-button:not([disabled]):focus-visible {
@@ -63,7 +66,10 @@ function Styles({ children }) {
         }
 
         .wallet-adapter-button:not([disabled]):hover {
-          background-color: #1a1f2e;
+          background: rgba(11, 10, 21, 0.9);
+          box-shadow: 0 0 25px rgba(0, 255, 255, 0.6), inset 0 0 20px rgba(255, 0, 255, 0.2);
+          color: #00ffff;
+          text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
         }
 
         .wallet-adapter-button[disabled] {
@@ -111,9 +117,11 @@ function Styles({ children }) {
           right: 0;
           margin: 0;
           list-style: none;
-          background: #2c2d30;
+          background: rgba(11, 10, 21, 0.95);
+          border: 2px solid;
+          border-image: linear-gradient(135deg, #00ffff, #ff00ff) 1;
           border-radius: 10px;
-          box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.6);
+          box-shadow: 0 0 30px rgba(0, 255, 255, 0.5), 0px 8px 20px rgba(0, 0, 0, 0.6);
           opacity: 0;
           visibility: hidden;
           transition:
@@ -149,7 +157,9 @@ function Styles({ children }) {
         }
 
         .wallet-adapter-dropdown-list-item:not([disabled]):hover {
-          background-color: #1a1f2e;
+          background: rgba(0, 255, 255, 0.1);
+          color: #00ffff;
+          text-shadow: 0 0 5px rgba(0, 255, 255, 0.6);
         }
 
         .wallet-adapter-modal-collapse-button svg {
@@ -188,7 +198,10 @@ function Styles({ children }) {
           right: 18px;
           padding: 12px;
           cursor: pointer;
-          background: #1a1f2e;
+          background: rgba(11, 10, 21, 0.9);
+          border: 2px solid;
+          border-image: linear-gradient(135deg, #00ffff, #ff00ff) 1;
+          box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
           border: none;
           border-radius: 50%;
         }
@@ -239,8 +252,10 @@ function Styles({ children }) {
           z-index: 1050;
           max-width: 400px;
           border-radius: 10px;
-          background: #10141f;
-          box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.6);
+          background: rgba(11, 10, 21, 0.95);
+          border: 2px solid;
+          border-image: linear-gradient(135deg, #00ffff, #ff00ff, #00ff00) 1;
+          box-shadow: 0 0 40px rgba(0, 255, 255, 0.5), 0px 8px 20px rgba(0, 0, 0, 0.6);
           font-family: 'DM Sans', 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
           flex: 1;
         }

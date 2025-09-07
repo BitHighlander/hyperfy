@@ -55,6 +55,7 @@ function MenuMainIndex({ world, pop, push }) {
       {isBuilder && (
         <MenuItemBtn label='Apps' hint='View all apps in the world' onClick={() => world.ui.toggleApps()} />
       )}
+      <MenuItemBtn label='Assets' hint='View and vote on world assets' onClick={() => world.ui.toggleAssets()} />
     </Menu>
   )
 }
