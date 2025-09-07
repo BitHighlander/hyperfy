@@ -179,6 +179,11 @@ export class ClientNetwork extends System {
     const [id, version, name, data] = event
     const entity = this.world.entities.get(id)
     entity?.onEvent(version, name, data)
+    
+    // Also emit to world.events for game-specific events
+    if (name === 'combat:update' || name === 'entity:death' || name === 'entity:respawn') {
+      this.world.events.emit(name, data)
+    }
   }
 
   onEntityRemoved = id => {
@@ -211,22 +216,6 @@ export class ClientNetwork extends System {
 
   onKick = code => {
     this.world.emit('kick', code)
-  }
-
-  // Game Engine Combat Events
-  onCombatUpdate = data => {
-    // Forward to world events for UI to handle
-    this.world.events.emit('combat:update', data)
-  }
-
-  onEntityDeath = data => {
-    // Forward to world events for UI to handle
-    this.world.events.emit('entity:death', data)
-  }
-
-  onEntityRespawn = data => {
-    // Forward to world events for UI to handle
-    this.world.events.emit('entity:respawn', data)
   }
 
   onClose = code => {

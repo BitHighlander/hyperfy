@@ -104,24 +104,67 @@ if (!world.gameEngine) {
   world.events.on('combat:update', (data) => {
     // Broadcast combat updates to all connected clients
     if (world.network && world.network.send) {
-      world.network.send('combatUpdate', data)
-      console.log('[Server] Broadcasting combatUpdate to all clients')
+      // Send as entityEvent for the event bus
+      world.network.send('entityEvent', [data.targetId, 0, 'combat:update', data])
+      
+      // Also send entityModified to update health bars
+      world.network.send('entityModified', {
+        id: data.targetId,
+        health: data.targetHealth,
+        maxHealth: data.targetMaxHealth
+      })
+      
+      // If attacker health changed (future feature), update them too
+      if (data.attackerId) {
+        world.network.send('entityModified', {
+          id: data.attackerId,
+          health: data.attackerHealth,
+          maxHealth: data.attackerMaxHealth
+        })
+      }
+      
+      console.log('[Server] Broadcasting combat updates via entityEvent and entityModified')
     }
   })
   
   world.events.on('entity:death', (data) => {
     // Broadcast death events to all connected clients
     if (world.network && world.network.send) {
-      world.network.send('entityDeath', data)
-      console.log('[Server] Broadcasting entityDeath to all clients')
+      // Send as entityEvent for the event bus
+      world.network.send('entityEvent', [data.entityId, 0, 'entity:death', data])
+      
+      // Also send entityModified with health 0 to update UI
+      world.network.send('entityModified', {
+        id: data.entityId,
+        health: 0,
+        maxHealth: 100 // Default, will be overridden by actual max health
+      })
+      
+      console.log('[Server] Broadcasting entity death via entityEvent and entityModified')
     }
   })
   
   world.events.on('entity:respawn', (data) => {
     // Broadcast respawn events to all connected clients
     if (world.network && world.network.send) {
-      world.network.send('entityRespawn', data)
-      console.log('[Server] Broadcasting entityRespawn to all clients')
+      // Send as entityEvent for the event bus
+      world.network.send('entityEvent', [data.entityId, 0, 'entity:respawn', data])
+      
+      // Also send entityModified with full health
+      const modifiedData = {
+        id: data.entityId,
+        health: data.health,
+        maxHealth: data.health // Assume full health on respawn
+      }
+      
+      // Include position if provided
+      if (data.position) {
+        modifiedData.p = data.position
+      }
+      
+      world.network.send('entityModified', modifiedData)
+      
+      console.log('[Server] Broadcasting entity respawn via entityEvent and entityModified')
     }
   })
   
