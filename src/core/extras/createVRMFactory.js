@@ -519,6 +519,7 @@ export function createVRMFactory(glb, setupMaterial) {
       poses[key] = pose
     }
     addPose('idle', Emotes.IDLE)
+    addPose('attack', Emotes.ATTACK)
     addPose('walk', Emotes.WALK)
     addPose('walkLeft', Emotes.WALK_LEFT)
     addPose('walkBack', Emotes.WALK_BACK)
