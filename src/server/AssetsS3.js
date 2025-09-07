@@ -194,6 +194,73 @@ export class AssetsS3 {
     }
   }
 
+  async listAssets(options = {}) {
+    const { sortBy = 'newest', page = 1, limit = 50 } = options
+    const params = {
+      Bucket: this.bucketName,
+      Prefix: this.prefix,
+      MaxKeys: 1000, // Get more items to sort properly
+    }
+
+    try {
+      const response = await this.client.send(new ListObjectsV2Command(params))
+      const objects = response.Contents || []
+      
+      // Filter out directories (keys ending with /)
+      const files = objects.filter(obj => !obj.Key.endsWith('/'))
+      
+      // Sort based on sortBy parameter
+      let sortedFiles = [...files]
+      if (sortBy === 'newest') {
+        sortedFiles.sort((a, b) => new Date(b.LastModified) - new Date(a.LastModified))
+      } else if (sortBy === 'oldest') {
+        sortedFiles.sort((a, b) => new Date(a.LastModified) - new Date(b.LastModified))
+      } else if (sortBy === 'rank' || sortBy === 'votes') {
+        // For rank/votes, we'll sort by size as a proxy (larger files might be more important)
+        // In a real system, you'd want to store vote data in the database
+        sortedFiles.sort((a, b) => b.Size - a.Size)
+      }
+      
+      // Paginate
+      const startIndex = (page - 1) * limit
+      const endIndex = startIndex + limit
+      const paginatedFiles = sortedFiles.slice(startIndex, endIndex)
+      
+      // Format assets for response
+      const assets = paginatedFiles.map((obj, index) => {
+        const filename = obj.Key.replace(this.prefix, '')
+        const extension = filename.split('.').pop().toLowerCase()
+        
+        return {
+          hash: obj.ETag ? obj.ETag.replace(/"/g, '') : obj.Key,
+          filename: filename,
+          url: `${this.url}/${filename}`,
+          uploaderId: 'system',
+          uploaderName: 'System',
+          fileSize: obj.Size || 0,
+          mimeType: contentTypes[extension] || 'application/octet-stream',
+          totalDegenVotes: Math.floor(Math.random() * 1000), // Placeholder - would come from DB
+          rank: startIndex + index + 1,
+          createdAt: obj.LastModified || new Date().toISOString(),
+          updatedAt: obj.LastModified || new Date().toISOString()
+        }
+      })
+      
+      return {
+        assets,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: sortedFiles.length,
+          totalPages: Math.ceil(sortedFiles.length / limit)
+        }
+      }
+    } catch (error) {
+      console.error('[assets] Error listing S3 assets:', error)
+      throw error
+    }
+  }
+
   async upload(file, uploaderData = null) {
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)

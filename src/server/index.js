@@ -334,6 +334,15 @@ fastify.post('/api/upgrade-to-builder', async (request, reply) => {
 fastify.get('/api/assets', async (request, reply) => {
   try {
     const { page = 1, limit = 50, sortBy = 'rank' } = request.query
+    
+    // If using S3, fetch directly from S3
+    if (process.env.ASSETS === 's3' && assets.listAssets) {
+      const response = await assets.listAssets({ sortBy, page, limit })
+      reply.code(200).send(response)
+      return
+    }
+    
+    // Otherwise, use database (for local assets)
     const offset = (page - 1) * limit
     
     // Get assets with metadata from database
