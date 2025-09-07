@@ -50,6 +50,7 @@ const Modes = {
   FLY: 5,
   TALK: 6,
   COMBAT: 7,
+  DEATH: 8,
 }
 
 export function createVRMFactory(glb, setupMaterial) {
@@ -533,6 +534,7 @@ export function createVRMFactory(glb, setupMaterial) {
     addPose('fall', Emotes.FALL)
     addPose('fly', Emotes.FLY)
     addPose('talk', Emotes.TALK)
+    addPose('death', Emotes.DEATH)
     function clearLocomotion() {
       for (const key in poses) {
         poses[key].fadeOut()
@@ -598,6 +600,8 @@ export function createVRMFactory(glb, setupMaterial) {
         poses.talk.target = 1
       } else if (mode === Modes.COMBAT) {
         poses.attack.target = 1
+      } else if (mode === Modes.DEATH) {
+        poses.death.target = 1
       }
       const lerpSpeed = 16
       for (const key in poses) {
