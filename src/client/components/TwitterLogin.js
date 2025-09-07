@@ -1,11 +1,15 @@
 import { css } from '@firebolt-dev/css'
 import { useState, useEffect } from 'react'
 import { storage } from '../../core/storage'
+import { Ranks } from '../../core/extras/ranks'
 
 export function TwitterLogin({ world }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [isTwitterUser, setIsTwitterUser] = useState(false)
+  const [isBuilder, setIsBuilder] = useState(false)
+  const [upgradingToBuilder, setUpgradingToBuilder] = useState(false)
 
   useEffect(() => {
     // Check if we have an auth token already
@@ -37,6 +41,39 @@ export function TwitterLogin({ world }) {
     }
   }, [])
 
+  // Monitor player status
+  useEffect(() => {
+    if (!world) return
+
+    const checkPlayerStatus = () => {
+      const player = world.entities.player
+      if (player) {
+        setIsTwitterUser(player.data.provider === 'twitter')
+        setIsBuilder(player.data.rank >= Ranks.BUILDER)
+      }
+    }
+
+    // Check initial status
+    checkPlayerStatus()
+
+    // Listen for player changes
+    world.on('player', checkPlayerStatus)
+    
+    // Listen for entity modifications (rank changes)
+    const onEntityModified = (data) => {
+      const player = world.entities.player
+      if (player && data.id === player.data.id) {
+        checkPlayerStatus()
+      }
+    }
+    world.on('entityModified', onEntityModified)
+
+    return () => {
+      world.off('player', checkPlayerStatus)
+      world.off('entityModified', onEntityModified)
+    }
+  }, [world])
+
   const handleTwitterLogin = () => {
     setLoading(true)
     // Redirect to Twitter OAuth
@@ -49,24 +86,127 @@ export function TwitterLogin({ world }) {
     window.location.reload()
   }
 
-  // Don't show login if already authenticated
-  if (isAuthenticated) {
-    return null
+  const handleBecomeBuilder = async () => {
+    setUpgradingToBuilder(true)
+    try {
+      const response = await fetch('/api/upgrade-to-builder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${storage.get('authToken')}`
+        }
+      })
+      
+      if (response.ok) {
+        // The rank will be updated via WebSocket
+        console.log('Successfully upgraded to builder!')
+      } else {
+        console.error('Failed to upgrade to builder')
+      }
+    } catch (error) {
+      console.error('Error upgrading to builder:', error)
+    } finally {
+      setUpgradingToBuilder(false)
+    }
   }
 
   return (
     <>
-      {/* Login Button */}
+      {/* Auth Buttons */}
       <div
-        className='twitter-login-button'
+        className='auth-buttons'
         css={css`
           position: absolute;
           top: 1rem;
           right: 1rem;
           z-index: 1000;
+          display: flex;
+          gap: 1rem;
+          align-items: center;
         `}
       >
-        {!showLogin && (
+        {/* Show Become Builder button for Twitter users who aren't builders yet */}
+        {isTwitterUser && !isBuilder && (
+          <button
+            onClick={handleBecomeBuilder}
+            disabled={upgradingToBuilder}
+            css={css`
+              padding: 0.75rem 1.5rem;
+              background: linear-gradient(135deg, #10b981, #059669);
+              color: white;
+              border: none;
+              border-radius: 2rem;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.3s ease;
+              box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+              
+              &:hover:not(:disabled) {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+              }
+              
+              &:disabled {
+                opacity: 0.7;
+                cursor: not-allowed;
+              }
+              
+              &:active:not(:disabled) {
+                transform: translateY(0);
+              }
+            `}
+          >
+            {upgradingToBuilder ? (
+              <>
+                <span
+                  css={css`
+                    display: inline-block;
+                    width: 16px;
+                    height: 16px;
+                    border: 2px solid rgba(255, 255, 255, 0.3);
+                    border-top-color: white;
+                    border-radius: 50%;
+                    animation: spin 0.8s linear infinite;
+                    
+                    @keyframes spin {
+                      to { transform: rotate(360deg); }
+                    }
+                  `}
+                />
+                Upgrading...
+              </>
+            ) : (
+              <>
+                🔨 Become a Builder
+              </>
+            )}
+          </button>
+        )}
+
+        {/* Show Builder badge if user is a builder */}
+        {isBuilder && (
+          <div
+            css={css`
+              padding: 0.5rem 1rem;
+              background: linear-gradient(135deg, #10b981, #059669);
+              color: white;
+              border-radius: 2rem;
+              font-weight: 600;
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+              box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+            `}
+          >
+            🔨 Builder
+          </div>
+        )}
+
+        {/* Sign In button for non-authenticated users */}
+        {!isAuthenticated && !showLogin && (
           <button
             onClick={() => setShowLogin(true)}
             css={css`

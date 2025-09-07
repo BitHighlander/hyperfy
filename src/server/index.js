@@ -257,6 +257,58 @@ fastify.get('/api/auth/callback/twitter', async (request, reply) => {
   }
 })
 
+// Upgrade to builder endpoint (Twitter users only)
+fastify.post('/api/upgrade-to-builder', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return reply.code(401).send({ error: 'Unauthorized' })
+    }
+
+    const token = authHeader.substring(7)
+    const { readJWT } = await import('../core/utils-server')
+    const { Ranks } = await import('../core/extras/ranks')
+    
+    const tokenData = await readJWT(token)
+    if (!tokenData) {
+      return reply.code(401).send({ error: 'Invalid token' })
+    }
+
+    const userId = tokenData.id || tokenData.userId
+    
+    // Check if user exists and is a Twitter user
+    const user = await db('users').where('id', userId).first()
+    if (!user) {
+      return reply.code(404).send({ error: 'User not found' })
+    }
+
+    if (user.provider !== 'twitter') {
+      return reply.code(403).send({ error: 'Only Twitter authenticated users can become builders' })
+    }
+
+    if (user.rank >= Ranks.BUILDER) {
+      return reply.code(200).send({ message: 'User is already a builder', rank: user.rank })
+    }
+
+    // Upgrade user to builder rank
+    await db('users').where('id', userId).update({ rank: Ranks.BUILDER })
+
+    // Update the player entity in the world if they're connected
+    for (const socket of world.network.sockets.values()) {
+      if (socket.player.data.id === userId) {
+        socket.player.modify({ rank: Ranks.BUILDER })
+        world.network.send('entityModified', { id: userId, rank: Ranks.BUILDER })
+        break
+      }
+    }
+
+    reply.code(200).send({ success: true, message: 'Successfully upgraded to builder', rank: Ranks.BUILDER })
+  } catch (error) {
+    console.error('Error upgrading to builder:', error)
+    reply.code(500).send({ error: 'Failed to upgrade to builder' })
+  }
+})
+
 fastify.setErrorHandler((err, req, reply) => {
   console.error(err)
   reply.status(500).send()
