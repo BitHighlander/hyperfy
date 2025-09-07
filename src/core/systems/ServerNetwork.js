@@ -226,22 +226,42 @@ export class ServerNetwork extends System {
       let user
       if (authToken) {
         try {
-          const { userId } = await readJWT(authToken)
+          const tokenData = await readJWT(authToken)
+          // Support both old format (userId) and new format (id)
+          const userId = tokenData.userId || tokenData.id
           user = await this.db('users').where('id', userId).first()
+          
+          // Update last login for existing users
+          if (user) {
+            await this.db('users').where('id', userId).update({ 
+              lastLogin: moment().toISOString() 
+            })
+          }
         } catch (err) {
           console.error('failed to read authToken:', authToken)
         }
       }
       if (!user) {
+        const now = moment().toISOString()
         user = {
           id: uuid(),
-          name: 'Anonymous',
+          name: name || 'Anonymous',
           avatar: null,
-          rank: 0,
-          createdAt: moment().toISOString(),
+          rank: this.world.settings.rank || 0,
+          provider: 'local',
+          providerId: null,
+          email: null,
+          profileImage: null,
+          createdAt: now,
+          lastLogin: now,
         }
         await this.db('users').insert(user)
-        authToken = await createJWT({ userId: user.id })
+        authToken = await createJWT({ 
+          id: user.id,
+          name: user.name,
+          avatar: user.avatar,
+          rank: user.rank
+        })
       }
 
       // disconnect if user already in this world
@@ -271,7 +291,8 @@ export class ServerNetwork extends System {
           health: HEALTH_MAX,
           avatar: user.avatar || this.world.settings.avatar?.url || 'asset://avatar.vrm',
           sessionAvatar: avatar || null,
-          roles: user.roles,
+          profileImage: user.profileImage, // Twitter profile image
+          provider: user.provider, // Auth provider (twitter/local)
           wallet: null,
           rank: user.rank,
           enteredAt: Date.now(),

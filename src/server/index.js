@@ -17,6 +17,7 @@ import { Storage } from './Storage'
 import { assets } from './assets'
 import { collections } from './collections'
 import { cleaner } from './cleaner'
+import { TwitterAuth } from './auth'
 
 const rootDir = path.join(__dirname, '../')
 const worldDir = path.join(rootDir, process.env.WORLD)
@@ -76,6 +77,9 @@ const db = await getDB({ worldDir })
 
 // init cleaner
 await cleaner.init({ db })
+
+// init Twitter auth
+const twitterAuth = new TwitterAuth({ db })
 
 // init storage
 const storage = new Storage(path.join(worldDir, '/storage.json'))
@@ -214,6 +218,42 @@ fastify.get('/status', async (request, reply) => {
       status: 'error',
       timestamp: new Date().toISOString(),
     })
+  }
+})
+
+// Twitter OAuth endpoints
+fastify.get('/api/auth/twitter', async (request, reply) => {
+  try {
+    const { url, state } = twitterAuth.getAuthorizationUrl()
+    reply.redirect(url)
+  } catch (error) {
+    console.error('Twitter auth initiation failed:', error)
+    reply.code(500).send({ error: 'Failed to initiate Twitter authentication' })
+  }
+})
+
+fastify.get('/api/auth/callback/twitter', async (request, reply) => {
+  try {
+    const { code, state } = request.query
+    
+    if (!code || !state) {
+      return reply.redirect('/?error=missing_parameters')
+    }
+
+    const result = await twitterAuth.authenticate(code, state)
+    
+    if (result.success) {
+      // Redirect to client with auth token
+      const redirectUrl = new URL('/', process.env.PUBLIC_URL)
+      redirectUrl.searchParams.set('authToken', result.authToken)
+      redirectUrl.searchParams.set('provider', 'twitter')
+      reply.redirect(redirectUrl.toString())
+    } else {
+      reply.redirect(`/?error=${encodeURIComponent(result.error)}`)
+    }
+  } catch (error) {
+    console.error('Twitter callback error:', error)
+    reply.redirect('/?error=authentication_failed')
   }
 })
 

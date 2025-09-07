@@ -7,3 +7,7 @@ localstorage.json
 node_modules/
 build/
 /world*
+/degen/
+.idea/
+pnpm-lock.yaml
+scripts/brc-map-generator.mjs

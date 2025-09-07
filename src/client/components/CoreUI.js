@@ -18,6 +18,7 @@ import { ControlPriorities } from '../../core/extras/ControlPriorities'
 import { ChevronDoubleUpIcon, HandIcon } from './Icons'
 import { Sidebar } from './Sidebar'
 import { Wallet } from './Wallet'
+import { TwitterLogin } from './TwitterLogin'
 
 export function CoreUI({ world }) {
   const ref = useRef()
@@ -92,6 +93,7 @@ export function CoreUI({ world }) {
         overflow: hidden;
       `}
     >
+      {<TwitterLogin world={world} />}
       {disconnected && <Disconnected />}
       {!ui.reticleSuppressors && <Reticle world={world} />}
       {<Toast world={world} />}

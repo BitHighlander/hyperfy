@@ -426,4 +426,14 @@ const migrations = [
     const value = JSON.stringify(settings)
     await db('config').where('key', 'settings').update({ value })
   },
+  // add Twitter OAuth fields to users table
+  async db => {
+    await db.schema.alterTable('users', table => {
+      table.string('provider').nullable().defaultTo('local')
+      table.string('providerId').nullable()
+      table.string('email').nullable()
+      table.string('profileImage').nullable()
+      table.timestamp('lastLogin').nullable()
+    })
+  },
 ]
