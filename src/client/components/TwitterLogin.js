@@ -94,7 +94,8 @@ export function TwitterLogin({ world }) {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${storage.get('authToken')}`
-        }
+        },
+        body: JSON.stringify({}) // Add empty body to satisfy content-type
       })
       
       if (response.ok) {
@@ -112,53 +113,161 @@ export function TwitterLogin({ world }) {
 
   return (
     <>
-      {/* Auth Buttons */}
-      <div
-        className='auth-buttons'
-        css={css`
-          position: absolute;
-          bottom: 1rem;
-          left: 1rem;
-          z-index: 1000;
-          display: flex;
-          gap: 1rem;
-          align-items: center;
-          pointer-events: auto !important;
-        `}
-        onPointerDown={(e) => {
-          e.stopPropagation()
-          e.preventDefault()
-        }}
-        onPointerUp={(e) => {
-          e.stopPropagation()
-          e.preventDefault()
-        }}
-        onClick={(e) => {
-          e.stopPropagation()
-          e.preventDefault()
-        }}
-      >
-        {/* Show Builder badge if user is a builder */}
-        {isBuilder && (
+      {/* Builder Badge - Bottom Right */}
+      {isBuilder && (
+        <div
+          className='builder-badge'
+          css={css`
+            position: absolute;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 1000;
+            pointer-events: auto !important;
+          `}
+          onPointerDown={(e) => {
+            e.stopPropagation()
+            e.preventDefault()
+          }}
+          onPointerUp={(e) => {
+            e.stopPropagation()
+            e.preventDefault()
+          }}
+          onClick={(e) => {
+            e.stopPropagation()
+            e.preventDefault()
+          }}
+        >
           <div
             css={css`
-              padding: 0.5rem 1rem;
-              background: linear-gradient(135deg, #10b981, #059669);
-              color: white;
-              border-radius: 2rem;
-              font-weight: 600;
-              display: flex;
-              align-items: center;
-              gap: 0.5rem;
-              box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+              padding: 0.75rem 1.25rem;
+              background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
+              border: 2px solid;
+              border-image: linear-gradient(135deg, #00ffff, #ff00ff, #00ff00) 1;
+              position: relative;
+              overflow: hidden;
+              
+              &::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
+                animation: scan 3s linear infinite;
+              }
+              
+              &::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(135deg, 
+                  rgba(0, 255, 255, 0.1) 0%, 
+                  transparent 40%, 
+                  transparent 60%, 
+                  rgba(255, 0, 255, 0.1) 100%
+                );
+                pointer-events: none;
+              }
+              
+              @keyframes scan {
+                to { left: 100%; }
+              }
             `}
           >
-            🔨 Builder
+            <div
+              css={css`
+                position: relative;
+                z-index: 1;
+                display: flex;
+                flex-direction: column;
+                gap: 0.25rem;
+              `}
+            >
+              <div
+                css={css`
+                  display: flex;
+                  align-items: center;
+                  gap: 0.5rem;
+                `}
+              >
+                <span
+                  css={css`
+                    font-size: 1.25rem;
+                    filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.8));
+                  `}
+                >
+                  ⚡
+                </span>
+                <span
+                  css={css`
+                    color: #00ffff;
+                    font-weight: 700;
+                    font-size: 0.9rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.1em;
+                    text-shadow: 
+                      0 0 10px rgba(0, 255, 255, 0.8),
+                      0 0 20px rgba(0, 255, 255, 0.4);
+                  `}
+                >
+                  Builder
+                </span>
+              </div>
+              <div
+                css={css`
+                  color: rgba(255, 255, 255, 0.6);
+                  font-size: 0.65rem;
+                  text-transform: uppercase;
+                  letter-spacing: 0.15em;
+                  padding-left: 2rem;
+                  font-family: 'Courier New', monospace;
+                `}
+              >
+                Access Granted
+              </div>
+              <div
+                css={css`
+                  color: rgba(0, 255, 255, 0.7);
+                  font-size: 0.7rem;
+                  letter-spacing: 0.05em;
+                  padding-left: 2rem;
+                  font-family: 'Courier New', monospace;
+                  margin-top: 0.25rem;
+                  text-shadow: 0 0 5px rgba(0, 255, 255, 0.4);
+                `}
+              >
+                type /create to begin
+              </div>
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Show Become Builder button for everyone who isn't a builder yet */}
-        {!isBuilder && (
+      {/* Become Builder Button - Bottom Left */}
+      {!isBuilder && (
+        <div
+          className='become-builder-button'
+          css={css`
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            z-index: 1000;
+            pointer-events: auto !important;
+          `}
+          onPointerDown={(e) => {
+            e.stopPropagation()
+            e.preventDefault()
+          }}
+          onPointerUp={(e) => {
+            e.stopPropagation()
+            e.preventDefault()
+          }}
+          onClick={(e) => {
+            e.stopPropagation()
+            e.preventDefault()
+          }}
+        >
           <button
             onClick={(e) => {
               e.stopPropagation()
@@ -236,8 +345,8 @@ export function TwitterLogin({ world }) {
               </>
             )}
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Login Modal - Removed, using direct Twitter login instead */}
       {false && showLogin && (
