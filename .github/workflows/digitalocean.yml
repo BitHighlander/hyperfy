@@ -3,6 +3,7 @@ name: Build and Push to DigitalOcean
 on:
   push:
     branches:
+      - feature-twitter  # Production branch
       - degencity  # Production branch
       - main       # Fallback/legacy
       - master     # Fallback/legacy
@@ -17,7 +18,7 @@ on:
 
 env:
   REGISTRY: registry.digitalocean.com
-  IMAGE_NAME: degen-city
+  IMAGE_NAME: degencity
 
 jobs:
   build-and-push:
