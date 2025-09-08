@@ -33,10 +33,10 @@
     "lint:fix": "eslint . --ext .js,.jsx --fix",
     "format": "prettier --write .",
     "check": "npm run lint && npm run format",
-    "docker:build": "docker build -t pioneer/degencity:latest .",
-    "docker:tag": "docker tag pioneer/degencity:latest registry.digitalocean.com/pioneer/pioneer/degencity:latest",
-    "docker:run": "docker run --env-file=../../.env pioneer/degencity:latest",
-    "docker:push": "docker push registry.digitalocean.com/pioneer/pioneer/degencity:latest",
+    "docker:build": "docker build -t degencity:latest .",
+    "docker:tag": "docker tag degencity:latest registry.digitalocean.com/pioneer/degencity:latest",
+    "docker:run": "docker run --env-file=../../.env degencity:latest",
+    "docker:push": "docker push registry.digitalocean.com/pioneer/degencity:latest",
     "docker:push:all": "npm run docker:build && npm run docker:tag && npm run docker:push"
   },
   "dependencies": {
