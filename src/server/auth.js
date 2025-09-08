@@ -15,6 +15,8 @@ export class TwitterAuth {
     this.clientId = process.env.TWITTER_CLIENT_ID
     this.clientSecret = process.env.TWITTER_CLIENT_SECRET
     this.redirectUri = `${process.env.PUBLIC_URL}/api/auth/callback/twitter`
+    console.log('[TwitterAuth] Redirect URI:', this.redirectUri)
+    console.log('[TwitterAuth] PUBLIC_URL:', process.env.PUBLIC_URL)
     this.states = new Map() // Store state tokens temporarily
   }
 
@@ -70,6 +72,9 @@ export class TwitterAuth {
     const { verifier } = storedState
     this.states.delete(state) // Use once and delete
 
+    console.log('[TwitterAuth] Token exchange - Redirect URI:', this.redirectUri)
+    console.log('[TwitterAuth] Token exchange - Code:', code.substring(0, 10) + '...')
+    
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
       code: code,
