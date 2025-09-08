@@ -11,6 +11,7 @@ on:
       - 'v*.*.*'
   pull_request:
     branches:
+      - feature-twitter
       - degencity
       - main
       - master
