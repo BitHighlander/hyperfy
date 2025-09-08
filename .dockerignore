@@ -1,11 +1,77 @@
-node_modules
-npm-debug.log
-world
-.git
+# Node modules and npm cache
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+.yarn/
+.pnpm-store/
+pnpm-lock.yaml
+yarn.lock
+
+# Build outputs (will be built fresh in container)
+build/
+dist/
+*.log
+
+# Development and Git files
+.git/
+.github/
 .gitignore
-.env.*
+.gitattributes
+.env*
 !.env.example
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Documentation
+README.md
+CLAUDE.md
+docs/
 *.md
-.eslintrc
-.prettierrc
-.eslintignore 
+
+# Linting and formatting
+.eslintrc*
+.prettierrc*
+.eslintignore
+.prettierignore
+
+# Test files
+test/
+tests/
+*.test.js
+*.spec.js
+coverage/
+.nyc_output/
+
+# Docker files (don't need in context)
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# World data (if exists locally, should be mounted as volume)
+world/
+backups/
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# CI/CD
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Scripts that aren't needed in production
+scripts/backup-world.mjs
+scripts/sync-s3.mjs

@@ -66,11 +66,14 @@ const fastify = Fastify({ logger: { level: 'error' } })
 // create world folder if needed
 await fs.ensureDir(worldDir)
 
+// init assets BEFORE db (db migrations may need assets)
+await assets.init({ rootDir, worldDir, db: null })
+
 // init db
 const db = await getDB({ worldDir })
 
-// init assets
-await assets.init({ rootDir, worldDir, db })
+// update assets with db reference
+assets.db = db
 
 // init collections
 await collections.init({ rootDir, worldDir })
