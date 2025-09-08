@@ -83,10 +83,14 @@ export class TwitterAuth {
       client_id: this.clientId
     })
 
+    // Create Basic Auth header with client credentials
+    const credentials = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64')
+    
     const response = await fetch(TWITTER_TOKEN_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${credentials}`
       },
       body: params.toString()
     })
