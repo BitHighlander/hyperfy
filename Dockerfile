@@ -5,9 +5,16 @@ WORKDIR /app
 # Install Python and build tools
 RUN apk add --no-cache python3 make g++ linux-headers eudev-dev
 
-# Copy package.json and package-lock.json to leverage layer caching
-COPY package.json package-lock.json ./
-RUN npm install
+# Update npm to latest version to avoid compatibility issues
+RUN npm install -g npm@latest
+
+# Copy package files and .npmrc to leverage layer caching
+COPY package.json package-lock.json .npmrc* ./
+
+# Clean npm cache and install dependencies with verbose logging
+RUN npm cache clean --force && \
+    npm ci --verbose --no-audit --no-fund || \
+    (npm install --verbose --no-audit --no-fund)
 
 # Copy all source files and build
 COPY . .
