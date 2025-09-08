@@ -3,16 +3,14 @@ name: Build and Push to DigitalOcean
 on:
   push:
     branches:
-      - main
-      - master
-      - dev
-      - feature-twitter
-      - solana-v2
-      - ai
+      - degencity  # Production branch
+      - main       # Fallback/legacy
+      - master     # Fallback/legacy
     tags:
       - 'v*.*.*'
   pull_request:
     branches:
+      - degencity
       - main
       - master
   workflow_dispatch:
@@ -58,13 +56,10 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ steps.registry.outputs.name }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest
+            type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=sha,prefix={{date 'YYYYMMDD'}}-
             
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
