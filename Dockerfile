@@ -64,6 +64,10 @@ ENV COMMIT_HASH=${COMMIT_HASH:-local} \
     NODE_ENV=production \
     NODE_OPTIONS="--max-old-space-size=2048"
 
+# Create world directory with proper permissions before switching user
+RUN mkdir -p /app/degencity && \
+    chown -R nodeuser:nodeuser /app/degencity
+
 # Switch to non-root user
 USER nodeuser
 
