@@ -1,0 +1,134 @@
+name: Release and Deploy
+
+on:
+  push:
+    branches:
+      - degencity
+      - feature-twitter
+      - main
+    paths:
+      - 'package.json'
+      - 'src/**'
+      - 'Dockerfile'
+      - '.github/workflows/**'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.15.1)'
+        required: false
+        type: string
+
+env:
+  REGISTRY: registry.digitalocean.com
+  IMAGE_NAME: degencity
+
+jobs:
+  version-and-build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      commit: ${{ steps.version.outputs.commit }}
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          
+      - name: Get version information
+        id: version
+        run: |
+          # Get version from package.json or workflow input
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+            npm version $VERSION --no-git-tag-version
+          else
+            VERSION=$(node -p "require('./package.json').version")
+          fi
+          
+          # Get short commit hash
+          COMMIT=$(git rev-parse --short HEAD)
+          
+          # Get branch name
+          BRANCH=${GITHUB_REF#refs/heads/}
+          
+          # Output values
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "commit=$COMMIT" >> $GITHUB_OUTPUT
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          
+          # Display info
+          echo "Version: $VERSION"
+          echo "Commit: $COMMIT"
+          echo "Branch: $BRANCH"
+          
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_TOKEN }}
+          
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Log in to DigitalOcean Container Registry
+        run: doctl registry login --expiry-seconds 1200
+        
+      - name: Get registry name
+        id: registry
+        run: |
+          REGISTRY_NAME=$(doctl registry get --format Name --no-header)
+          echo "name=$REGISTRY_NAME" >> $GITHUB_OUTPUT
+          
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.registry.outputs.name }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ steps.registry.outputs.name }}/${{ env.IMAGE_NAME }}:v${{ steps.version.outputs.version }}
+            ${{ env.REGISTRY }}/${{ steps.registry.outputs.name }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.branch }}-${{ steps.version.outputs.commit }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ steps.registry.outputs.name }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ steps.registry.outputs.name }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            COMMIT_HASH=${{ steps.version.outputs.commit }}
+            BUILD_TIME=${{ github.event.head_commit.timestamp }}
+          provenance: false
+          
+      - name: Create Git tag
+        if: github.ref == 'refs/heads/degencity' || github.ref == 'refs/heads/main'
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git tag -a v${{ steps.version.outputs.version }} -m "Release v${{ steps.version.outputs.version }}"
+          git push origin v${{ steps.version.outputs.version }} || true
+          
+      - name: Generate deployment report
+        run: |
+          echo "### 🚀 Deployment Information" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** v${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ steps.version.outputs.commit }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ steps.version.outputs.branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Time:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Docker Images" >> $GITHUB_STEP_SUMMARY
+          echo "```" >> $GITHUB_STEP_SUMMARY
+          echo "${{ env.REGISTRY }}/${{ steps.registry.outputs.name }}/${{ env.IMAGE_NAME }}:v${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "${{ env.REGISTRY }}/${{ steps.registry.outputs.name }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.branch }}-${{ steps.version.outputs.commit }}" >> $GITHUB_STEP_SUMMARY
+          echo "${{ env.REGISTRY }}/${{ steps.registry.outputs.name }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "```" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Verification" >> $GITHUB_STEP_SUMMARY
+          echo "To verify deployment, check:" >> $GITHUB_STEP_SUMMARY
+          echo "- Health endpoint: https://degencity.ai/health" >> $GITHUB_STEP_SUMMARY
+          echo "- Expected version: v${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Expected commit: ${{ steps.version.outputs.commit }}" >> $GITHUB_STEP_SUMMARY

@@ -28,7 +28,21 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
         
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          
+      - name: Get version from package.json
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+          
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
         with:
@@ -58,10 +72,12 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ steps.registry.outputs.name }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/degencity' || github.ref == 'refs/heads/main' }}
             type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
             type=semver,pattern={{major}}.{{minor}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-            type=sha,prefix={{date 'YYYYMMDD'}}-
+            type=sha,prefix={{branch}}-
+            type=raw,value={{branch}}-{{date 'YYYYMMDD'}}-{{sha}}
             
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
@@ -80,12 +96,18 @@ jobs:
             type=registry,ref=${{ env.REGISTRY }}/${{ steps.registry.outputs.name }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
           build-args: |
             COMMIT_HASH=${{ github.sha }}
+            VERSION=${{ steps.version.outputs.version }}
+            BUILD_TIME=${{ github.event.head_commit.timestamp }}
           provenance: false
             
       - name: Generate image report
         if: github.event_name != 'pull_request'
         run: |
           echo "### Docker Image Published to DigitalOcean 🌊" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** v${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${GITHUB_REF#refs/heads/}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Registry:** ${{ env.REGISTRY }}/${{ steps.registry.outputs.name }}" >> $GITHUB_STEP_SUMMARY
           echo "**Image:** ${{ env.REGISTRY }}/${{ steps.registry.outputs.name }}/${{ env.IMAGE_NAME }}" >> $GITHUB_STEP_SUMMARY
@@ -95,8 +117,13 @@ jobs:
           echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
           echo "```" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "**Platform:** linux/amd64" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployment Instructions" >> $GITHUB_STEP_SUMMARY
+          echo "To deploy this version to production:" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "kubectl set image deployment/degencity-rsq8833j degencity=${{ env.REGISTRY }}/${{ steps.registry.outputs.name }}/${{ env.IMAGE_NAME }}:${GITHUB_REF#refs/heads/}-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
           
       - name: Clean up old images
         if: github.event_name != 'pull_request'

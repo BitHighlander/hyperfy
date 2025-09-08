@@ -12,11 +12,25 @@ const TWITTER_USER_URL = 'https://api.x.com/2/users/me'
 export class TwitterAuth {
   constructor({ db }) {
     this.db = db
-    this.clientId = process.env.TWITTER_CLIENT_ID
-    this.clientSecret = process.env.TWITTER_CLIENT_SECRET
-    this.redirectUri = `${process.env.PUBLIC_URL}/api/auth/callback/twitter`
-    console.log('[TwitterAuth] Redirect URI:', this.redirectUri)
-    console.log('[TwitterAuth] PUBLIC_URL:', process.env.PUBLIC_URL)
+    // Trim any whitespace from environment variables
+    this.clientId = process.env.TWITTER_CLIENT_ID?.trim()
+    this.clientSecret = process.env.TWITTER_CLIENT_SECRET?.trim()
+    const publicUrl = process.env.PUBLIC_URL?.trim()
+    this.redirectUri = `${publicUrl}/api/auth/callback/twitter`
+    
+    console.log('[TwitterAuth] Initialization:')
+    console.log('[TwitterAuth] - Redirect URI:', this.redirectUri)
+    console.log('[TwitterAuth] - PUBLIC_URL:', publicUrl)
+    console.log('[TwitterAuth] - Client ID exists:', !!this.clientId)
+    console.log('[TwitterAuth] - Client Secret exists:', !!this.clientSecret)
+    console.log('[TwitterAuth] - Client ID length:', this.clientId?.length)
+    
+    // Validate configuration
+    if (!this.clientId || !this.clientSecret) {
+      console.error('[TwitterAuth] ERROR: Missing OAuth credentials!')
+      console.error('[TwitterAuth] Please set TWITTER_CLIENT_ID and TWITTER_CLIENT_SECRET environment variables')
+    }
+    
     this.states = new Map() // Store state tokens temporarily
   }
 
@@ -74,6 +88,16 @@ export class TwitterAuth {
 
     console.log('[TwitterAuth] Token exchange - Redirect URI:', this.redirectUri)
     console.log('[TwitterAuth] Token exchange - Code:', code.substring(0, 10) + '...')
+    console.log('[TwitterAuth] Client ID exists:', !!this.clientId)
+    console.log('[TwitterAuth] Client Secret exists:', !!this.clientSecret)
+    
+    // Check if credentials are configured
+    if (!this.clientId || !this.clientSecret) {
+      console.error('[TwitterAuth] Missing Twitter OAuth credentials!')
+      console.error('[TwitterAuth] TWITTER_CLIENT_ID is:', this.clientId ? 'set' : 'missing')
+      console.error('[TwitterAuth] TWITTER_CLIENT_SECRET is:', this.clientSecret ? 'set' : 'missing')
+      throw new Error('Twitter OAuth credentials not configured')
+    }
     
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
@@ -86,6 +110,16 @@ export class TwitterAuth {
     // Create Basic Auth header with client credentials
     const credentials = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64')
     
+    console.log('[TwitterAuth] Request params:', {
+      grant_type: 'authorization_code',
+      redirect_uri: this.redirectUri,
+      client_id: this.clientId.substring(0, 10) + '...',
+      code_verifier: verifier.substring(0, 10) + '...'
+    })
+    
+    console.log('[TwitterAuth] Auth header created, credentials length:', credentials.length)
+    console.log('[TwitterAuth] Full request body:', params.toString())
+    
     const response = await fetch(TWITTER_TOKEN_URL, {
       method: 'POST',
       headers: {
@@ -97,6 +131,8 @@ export class TwitterAuth {
 
     if (!response.ok) {
       const error = await response.text()
+      console.error('[TwitterAuth] Token exchange failed:', error)
+      console.error('[TwitterAuth] Response status:', response.status)
       throw new Error(`Failed to exchange code for token: ${error}`)
     }
 

@@ -59,9 +59,14 @@ COPY --from=builder --chown=nodeuser:nodeuser /app/package*.json ./
 COPY --from=builder --chown=nodeuser:nodeuser /app/scripts ./scripts
 COPY --from=builder --chown=nodeuser:nodeuser /app/.npmrc* ./
 
-# Set build argument and environment variable
+# Set build arguments and environment variables
 ARG COMMIT_HASH=local
+ARG VERSION=unknown
+ARG BUILD_TIME
 ENV COMMIT_HASH=${COMMIT_HASH:-local} \
+    VERSION=${VERSION:-unknown} \
+    BUILD_TIME=${BUILD_TIME} \
+    GIT_COMMIT=${COMMIT_HASH:-local} \
     NODE_ENV=production \
     NODE_OPTIONS="--max-old-space-size=2048"
 

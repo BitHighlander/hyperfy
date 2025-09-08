@@ -18,10 +18,41 @@ import { assets } from './assets'
 import { collections } from './collections'
 import { cleaner } from './cleaner'
 import { TwitterAuth } from './auth'
+import { readFileSync } from 'fs'
+import { execSync } from 'child_process'
 
 const rootDir = path.join(__dirname, '../')
 const worldDir = path.join(rootDir, process.env.WORLD)
 const port = process.env.PORT
+
+// Get version and build info
+let packageInfo = { version: 'unknown' }
+try {
+  packageInfo = JSON.parse(readFileSync(path.join(rootDir, 'package.json'), 'utf8'))
+} catch (e) {
+  console.error('Could not read package.json:', e)
+}
+
+// Get git commit hash and build time
+let gitCommit = 'unknown'
+let buildTime = new Date().toISOString()
+try {
+  gitCommit = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim()
+} catch (e) {
+  // Not in a git repo or git not available
+  gitCommit = process.env.GIT_COMMIT || 'unknown'
+}
+
+// Store build metadata
+const buildInfo = {
+  version: packageInfo.version,
+  commit: gitCommit,
+  buildTime: buildTime,
+  nodeVersion: process.version,
+  env: process.env.NODE_ENV || 'development'
+}
+
+console.log('[Server] Starting with build info:', buildInfo)
 
 // check envs
 if (!process.env.WORLD) {
@@ -276,11 +307,20 @@ fastify.get('/api/upload-check', async (req, reply) => {
 
 fastify.get('/health', async (request, reply) => {
   try {
-    // Basic health check
+    // Enhanced health check with version info
     const health = {
       status: 'ok',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
+      version: buildInfo.version,
+      commit: buildInfo.commit,
+      buildTime: buildInfo.buildTime,
+      nodeVersion: buildInfo.nodeVersion,
+      environment: buildInfo.env,
+      world: process.env.WORLD,
+      publicUrl: process.env.PUBLIC_URL,
+      memoryUsage: process.memoryUsage(),
+      twitterAuthConfigured: !!(process.env.TWITTER_CLIENT_ID && process.env.TWITTER_CLIENT_SECRET)
     }
 
     return reply.code(200).send(health)
@@ -289,6 +329,8 @@ fastify.get('/health', async (request, reply) => {
     return reply.code(503).send({
       status: 'error',
       timestamp: new Date().toISOString(),
+      version: buildInfo.version,
+      commit: buildInfo.commit
     })
   }
 })
