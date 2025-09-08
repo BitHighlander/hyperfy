@@ -44,9 +44,10 @@ RUN npm prune --production
 FROM node:22.11.0-alpine AS production
 WORKDIR /app
 
-# Add curl for healthcheck and create non-root user
+# Add curl for healthcheck and create non-root user with group
 RUN apk add --no-cache curl && \
-    adduser -S nodeuser -u 1001
+    addgroup -g 1001 nodeuser && \
+    adduser -S -G nodeuser -u 1001 nodeuser
 
 # Copy production dependencies from deps stage
 COPY --from=deps --chown=nodeuser:nodeuser /app/node_modules ./node_modules
