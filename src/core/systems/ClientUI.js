@@ -14,6 +14,7 @@ export class ClientUI extends System {
       app: null,
       pane: null,
       reticleSuppressors: 0,
+      objectStats: null, // Entity to show stats for
     }
     this.lastAppPane = 'app'
     this.control = null
@@ -25,7 +26,10 @@ export class ClientUI extends System {
 
   update() {
     if (this.control.escape.pressed) {
-      if (this.state.pane) {
+      if (this.state.objectStats) {
+        this.state.objectStats = null
+        this.broadcast()
+      } else if (this.state.pane) {
         this.state.pane = null
         this.broadcast()
       } else if (this.state.app) {
@@ -77,6 +81,20 @@ export class ClientUI extends System {
   setApp(app) {
     this.state.app = app
     this.state.pane = app ? this.lastAppPane : null
+    this.broadcast()
+  }
+
+  showObjectStats(entity) {
+    this.state.objectStats = entity
+    // Exit pointer lock when showing dialog
+    if (this.control.pointer.locked) {
+      this.control.pointer.unlock()
+    }
+    this.broadcast()
+  }
+
+  hideObjectStats() {
+    this.state.objectStats = null
     this.broadcast()
   }
 

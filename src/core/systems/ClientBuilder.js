@@ -236,10 +236,15 @@ export class ClientBuilder extends System {
         this.control.pointer.unlock()
         this.world.ui.setApp(entity)
       }
-      if (entity?.isPlayer) {
+      else if (entity?.isPlayer) {
         this.select(null)
         this.control.pointer.unlock()
         this.world.ui.togglePane('players')
+      }
+      else if (entity) {
+        // Show object stats dialog for regular objects
+        this.select(null)
+        this.world.ui.showObjectStats(entity)
       }
     }
     // inspect out of pointer-lock
@@ -250,10 +255,15 @@ export class ClientBuilder extends System {
         this.control.pointer.unlock()
         this.world.ui.setApp(entity)
       }
-      if (entity?.isPlayer) {
+      else if (entity?.isPlayer) {
         this.select(null)
         this.control.pointer.unlock()
         this.world.ui.togglePane('players')
+      }
+      else if (entity) {
+        // Show object stats dialog for regular objects
+        this.select(null)
+        this.world.ui.showObjectStats(entity)
       }
     }
     // show object stats on left click when not in build mode

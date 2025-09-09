@@ -122,6 +122,13 @@ export function CoreUI({ world }) {
       {selectedEntity && <ObjectStatsDialog entity={selectedEntity} onClose={() => setSelectedEntity(null)} world={world} />}
       <div id='core-ui-portal' />
       {ready && <Wallet world={world} />}
+      {/* ui.objectStats && (
+        <ObjectStatsDialog 
+          entity={ui.objectStats}
+          onClose={() => world.ui.hideObjectStats()}
+          world={world}
+        />
+      ) */}
     </div>
   )
 }

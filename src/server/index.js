@@ -20,6 +20,7 @@ import { cleaner } from './cleaner'
 import { TwitterAuth } from './auth'
 import { readFileSync } from 'fs'
 import { execSync } from 'child_process'
+import worldBackup from './WorldS3Backup'
 
 const rootDir = path.join(__dirname, '../')
 const worldDir = path.join(rootDir, process.env.WORLD)
@@ -108,6 +109,9 @@ assets.db = db
 
 // init collections
 await collections.init({ rootDir, worldDir })
+
+// init world backup
+await worldBackup.init(worldDir)
 
 // init cleaner
 await cleaner.init({ db })
@@ -695,11 +699,15 @@ console.log(`server listening on port ${port}`)
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
+  console.log('Shutting down...')
+  await worldBackup.shutdown()
   await fastify.close()
   process.exit(0)
 })
 
 process.on('SIGTERM', async () => {
+  console.log('Shutting down...')
+  await worldBackup.shutdown()
   await fastify.close()
   process.exit(0)
 })
