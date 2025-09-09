@@ -209,12 +209,39 @@ export class AssetsS3 {
         const newSubPath = subPath ? path.join(subPath, file) : file
         await this.uploadDirectory(filePath, baseDir, newSubPath)
       } else {
-        // Upload file with its original path structure
+        // Upload file with both original and hashed filename
         const buffer = await fs.readFile(filePath)
-        const relativePath = subPath ? path.join(subPath, file) : file
-
-        // Always upload built-in assets (overwrite existing)
-        await this.uploadBuffer(buffer, relativePath)
+        const hash = await hashFile(buffer)
+        const ext = file.split('.').pop().toLowerCase()
+        const hashedFilename = `${hash}.${ext}`
+        
+        // Upload with original filename for direct access (e.g., ai.js)
+        const originalExists = await this.exists(file)
+        if (!originalExists) {
+          await this.uploadBuffer(buffer, file, {
+            'original-name': file,
+            'asset-source': 'seed',
+            'asset-category': 'built-in',
+            'content-hash': hash
+          })
+          console.log(`[assets] Uploaded seed asset: ${file}`)
+        } else {
+          console.log(`[assets] Seed asset already exists: ${file}`)
+        }
+        
+        // Also upload with hashed filename for deduplication
+        const hashExists = await this.exists(hashedFilename)
+        if (!hashExists) {
+          await this.uploadBuffer(buffer, hashedFilename, {
+            'original-name': file,
+            'asset-source': 'seed',
+            'asset-category': 'built-in'
+          })
+          console.log(`[assets] Uploaded hashed asset: ${file} -> ${hashedFilename}`)
+        }
+        
+        // Track seed asset hash for filtering
+        SEED_ASSET_HASHES.add(hash)
       }
     }
   }
@@ -415,6 +442,7 @@ export class AssetsS3 {
                 Key: key,
                 Body: buffer,
                 ContentType: contentTypes[ext] || 'application/octet-stream',
+                ACL: 'public-read',
               })
               
               const uploadResult = await this.client.send(command)
@@ -520,6 +548,7 @@ export class AssetsS3 {
         Key: key,
         Body: buffer,
         ContentType: this.getContentType(filename),
+        ACL: 'public-read', // Make the asset publicly readable
         // Add metadata tags for asset tracking
         Metadata: {
           'asset-type': extension,
@@ -622,7 +651,13 @@ export class AssetsS3 {
 
   // Helper methods
   getKey(filename) {
-    return `${this.prefix}${filename}`
+    // Handle empty prefix case
+    if (!this.prefix || this.prefix === '/') {
+      return filename
+    }
+    // Ensure single slash between prefix and filename
+    const cleanPrefix = this.prefix.endsWith('/') ? this.prefix.slice(0, -1) : this.prefix
+    return `${cleanPrefix}/${filename}`
   }
 
   getContentType(filename) {
