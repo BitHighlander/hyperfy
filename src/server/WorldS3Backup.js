@@ -1,7 +1,7 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, HeadObjectCommand } from '@aws-sdk/client-s3'
 import fs from 'fs-extra'
 import path from 'path'
-import tar from 'tar'
+import * as tar from 'tar'
 import { createReadStream, createWriteStream } from 'fs'
 import { pipeline } from 'stream/promises'
 
