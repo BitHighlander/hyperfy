@@ -256,6 +256,14 @@ export class ClientBuilder extends System {
         this.world.ui.togglePane('players')
       }
     }
+    // show object stats on left click when not in build mode
+    else if (!this.selected && !this.beam.active && this.control.mouseLeft.pressed) {
+      const entity = this.getEntityAtCursor()
+      if (entity?.isApp && !entity.blueprint.scene) {
+        // Show object stats dialog (excluding scene/meadow objects)
+        this.world.emit('objectStats', entity)
+      }
+    }
     // unlink
     if (this.control.keyU.pressed && this.beam.active) {
       const entity = this.selected || this.getEntityAtBeam()
@@ -410,6 +418,9 @@ export class ClientBuilder extends System {
           uploader: null,
           pinned: false,
           state: {},
+          creatorId: this.world.network.id,
+          creatorName: this.world.entities.player?.data?.name || 'Anonymous',
+          createdAt: Date.now(),
         }
         const dup = this.world.entities.add(data, true)
         this.select(dup)
@@ -1137,6 +1148,9 @@ export class ClientBuilder extends System {
       uploader: this.world.network.id,
       pinned: false,
       state: {},
+      creatorId: this.world.network.id,
+      creatorName: this.world.entities.player?.data?.name || 'Anonymous',
+      createdAt: Date.now(),
     }
     this.world.blueprints.add(blueprint, true)
     const app = this.world.entities.add(data, true)
@@ -1197,6 +1211,9 @@ export class ClientBuilder extends System {
       uploader: this.world.network.id,
       pinned: false,
       state: {},
+      creatorId: this.world.network.id,
+      creatorName: this.world.entities.player?.data?.name || 'Anonymous',
+      createdAt: Date.now(),
     }
     const app = this.world.entities.add(data, true)
     // upload the glb
@@ -1257,6 +1274,9 @@ export class ClientBuilder extends System {
           uploader: this.world.network.id,
           pinned: false,
           state: {},
+          creatorId: this.world.network.id,
+          creatorName: this.world.entities.player?.data?.name || 'Anonymous',
+          createdAt: Date.now(),
         }
         const app = this.world.entities.add(data, true)
         // upload the glb

@@ -480,7 +480,10 @@ export function AssetsPage() {
                             <span className="rank-number">#{asset.rank}</span>
                           </div>
                         </td>
-                        <td className="filename-cell">{asset.filename}</td>
+                        <td className="filename-cell">
+                          {asset.mimeType === 'application/object' && '🎮 '}
+                          {asset.filename}
+                        </td>
                         <td className="votes-cell">{asset.totalDegenVotes.toLocaleString()}</td>
                         <td>
                           <div className="uploader-cell">
@@ -516,16 +519,22 @@ export function AssetsPage() {
                                   <span className="detail-value">{formatDate(asset.updatedAt)}</span>
                                 </div>
                               </div>
-                              <a 
-                                href={asset.url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="view-asset-btn"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                View Asset
-                                <ExternalLinkIcon size={14} />
-                              </a>
+                              {asset.mimeType !== 'application/object' ? (
+                                <a 
+                                  href={asset.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="view-asset-btn"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  View Asset
+                                  <ExternalLinkIcon size={14} />
+                                </a>
+                              ) : (
+                                <div className="view-asset-btn" style={{ cursor: 'default', opacity: 0.7 }}>
+                                  🎮 In-Game Object
+                                </div>
+                              )}
                             </div>
                           </td>
                         </tr>

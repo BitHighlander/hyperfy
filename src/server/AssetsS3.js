@@ -507,21 +507,29 @@ export class AssetsS3 {
     return filename
   }
 
-  async uploadBuffer(buffer, filename) {
+  async uploadBuffer(buffer, filename, metadata = {}) {
     const key = this.getKey(filename)
 
     try {
-      await this.client.send(
-        new PutObjectCommand({
-          Bucket: this.bucketName,
-          Key: key,
-          Body: buffer,
-          // Optional: Set content type based on file extension
-          ContentType: this.getContentType(filename),
-          // Optional: Make objects publicly readable if needed
-          // ACL: 'public-read',
-        })
-      )
+      // Extract file info for metadata
+      const extension = filename.split('.').pop().toLowerCase()
+      const isHashedAsset = filename.split('.')[0].length === 64
+      
+      const command = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+        Body: buffer,
+        ContentType: this.getContentType(filename),
+        // Add metadata tags for asset tracking
+        Metadata: {
+          'asset-type': extension,
+          'is-hashed': isHashedAsset ? 'true' : 'false',
+          'upload-timestamp': new Date().toISOString(),
+          ...metadata
+        }
+      })
+      
+      await this.client.send(command)
     } catch (error) {
       throw new Error(`Failed to upload to S3: ${error.message}`)
     }

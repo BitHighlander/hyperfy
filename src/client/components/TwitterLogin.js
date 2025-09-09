@@ -1,5 +1,5 @@
 import { css } from '@firebolt-dev/css'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { storage } from '../../core/storage'
 import { Ranks } from '../../core/extras/ranks'
 
@@ -40,7 +40,7 @@ export function TwitterLogin({ world }) {
       window.history.replaceState({}, document.title, window.location.pathname)
     }
   }, [])
-
+  
   // Monitor player status
   useEffect(() => {
     if (!world) return
@@ -86,14 +86,24 @@ export function TwitterLogin({ world }) {
     window.location.reload()
   }
 
-  const handleBecomeBuilder = async () => {
+  const handleBecomeBuilder = useCallback(async () => {
+    // Prevent duplicate upgrades
+    if (upgradingToBuilder || isBuilder) return
+    
     setUpgradingToBuilder(true)
     try {
+      const authToken = storage.get('authToken')
+      if (!authToken || authToken === 'null') {
+        console.error('No auth token available for upgrade')
+        setUpgradingToBuilder(false)
+        return
+      }
+      
       const response = await fetch('/api/upgrade-to-builder', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${storage.get('authToken')}`
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({}) // Add empty body to satisfy content-type
       })
@@ -102,25 +112,39 @@ export function TwitterLogin({ world }) {
         // The rank will be updated via WebSocket
         console.log('Successfully upgraded to builder!')
       } else {
-        console.error('Failed to upgrade to builder')
+        console.error('Failed to upgrade to builder:', response.status)
       }
     } catch (error) {
       console.error('Error upgrading to builder:', error)
     } finally {
       setUpgradingToBuilder(false)
     }
-  }
+  }, [upgradingToBuilder, isBuilder])
+
+  // Auto-upgrade Twitter users to builder
+  useEffect(() => {
+    if (!world) return
+    
+    // Only try to auto-upgrade if:
+    // 1. User is a Twitter user
+    // 2. User is not yet a builder
+    // 3. We're not already upgrading
+    if (isTwitterUser && !isBuilder && !upgradingToBuilder) {
+      console.log('Auto-upgrading Twitter user to builder...')
+      handleBecomeBuilder()
+    }
+  }, [isTwitterUser, isBuilder, world, upgradingToBuilder, handleBecomeBuilder])
 
   return (
     <>
-      {/* Builder Badge - Bottom Right */}
+      {/* Builder Badge - Top Right */}
       {isBuilder && (
         <div
           className='builder-badge'
           css={css`
             position: absolute;
-            bottom: 1.5rem;
-            right: 1.5rem;
+            top: 1rem;
+            right: 1rem;
             z-index: 1000;
             pointer-events: auto !important;
           `}
@@ -244,14 +268,14 @@ export function TwitterLogin({ world }) {
         </div>
       )}
 
-      {/* Become Builder Button - Bottom Right */}
+      {/* Become Builder Button - Top Right */}
       {!isBuilder && (
         <div
           className='become-builder-button'
           css={css`
             position: absolute;
-            bottom: 1.5rem;
-            right: 1.5rem;
+            top: 1rem;
+            right: 1rem;
             z-index: 1000;
             pointer-events: auto !important;
           `}

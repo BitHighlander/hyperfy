@@ -7,6 +7,7 @@ import { createJWT, readJWT } from '../utils-server'
 import { cloneDeep, isNumber } from 'lodash-es'
 import * as THREE from '../extras/three'
 import { Ranks } from '../extras/ranks'
+import { BlueprintS3Backup } from '../../server/BlueprintS3Backup'
 
 const SAVE_INTERVAL = parseInt(process.env.SAVE_INTERVAL || '60') // seconds
 const PING_RATE = 1 // seconds
@@ -33,10 +34,21 @@ export class ServerNetwork extends System {
     this.dirtyApps = new Set()
     this.isServer = true
     this.queue = []
+    this.blueprintBackup = null
   }
 
   init({ db }) {
     this.db = db
+    
+    // Initialize blueprint backup system if S3 is configured
+    if (this.world.assets?.client) {
+      this.blueprintBackup = new BlueprintS3Backup(
+        this.world.assets.client,
+        this.world.assets.bucketName,
+        'blueprints/'
+      )
+      this.blueprintBackup.init(db)
+    }
   }
 
   async start() {
@@ -143,6 +155,14 @@ export class ServerNetwork extends System {
           .onConflict('id')
           .merge({ ...record, updatedAt: now })
         counts.upsertedBlueprints++
+        
+        // Backup blueprint to S3
+        if (this.blueprintBackup) {
+          this.blueprintBackup.backupBlueprint(blueprint, true).catch(err => {
+            console.error(`[network] Failed to backup blueprint ${blueprint.id} to S3:`, err.message)
+          })
+        }
+        
         this.dirtyBlueprints.delete(id)
       } catch (err) {
         console.log(`error saving blueprint: ${blueprint.id}`)
@@ -477,13 +497,48 @@ export class ServerNetwork extends System {
     }
   }
 
-  onEntityAdded = (socket, data) => {
+  onEntityAdded = async (socket, data) => {
     if (!socket.player.isBuilder()) {
       return console.error('player attempted to add entity without builder permission')
     }
+    // Add creator and timestamp information
+    data.creatorId = socket.player.data.userId
+    data.creatorName = socket.player.data.name
+    data.createdAt = Date.now()
+    
     const entity = this.world.entities.add(data)
     this.send('entityAdded', data, socket.id)
-    if (entity.isApp) this.dirtyApps.add(entity.data.id)
+    if (entity.isApp) {
+      this.dirtyApps.add(entity.data.id)
+      
+      // Also track in assets_metadata table for the /assets page
+      try {
+        const { moment } = await import('moment')
+        const now = moment().toISOString()
+        
+        // Create a unique hash for this object based on its ID
+        const objectHash = `object_${data.id}`
+        
+        // Check if metadata exists
+        const existing = await this.db('assets_metadata').where('hash', objectHash).first()
+        if (!existing) {
+          await this.db('assets_metadata').insert({
+            hash: objectHash,
+            filename: `${entity.blueprint?.name || 'Object'}_${data.id.substring(0, 8)}`,
+            uploaderId: data.creatorId,
+            uploaderName: data.creatorName,
+            totalDegenVotes: 0,
+            rank: 0,
+            fileSize: 0, // Objects don't have file size
+            mimeType: 'application/object', // Custom type for in-game objects
+            createdAt: now,
+            updatedAt: now
+          })
+        }
+      } catch (err) {
+        console.error('Failed to track object in assets_metadata:', err)
+      }
+    }
   }
 
   onEntityModified = async (socket, data) => {

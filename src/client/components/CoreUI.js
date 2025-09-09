@@ -20,6 +20,8 @@ import { ChevronDoubleUpIcon, HandIcon } from './Icons'
 import { Sidebar } from './Sidebar'
 import { Wallet } from './Wallet'
 import { TwitterLogin } from './TwitterLogin'
+import { PositionDisplay } from './PositionDisplay'
+import { ObjectStatsDialog } from './ObjectStatsDialog'
 
 export function CoreUI({ world }) {
   const ref = useRef()
@@ -34,6 +36,7 @@ export function CoreUI({ world }) {
   const [apps, setApps] = useState(false)
   const [assets, setAssets] = useState(false)
   const [kicked, setKicked] = useState(null)
+  const [selectedEntity, setSelectedEntity] = useState(null)
   useEffect(() => {
     world.on('ready', setReady)
     world.on('player', setPlayer)
@@ -46,6 +49,7 @@ export function CoreUI({ world }) {
     world.on('avatar', setAvatar)
     world.on('kick', setKicked)
     world.on('disconnect', setDisconnected)
+    world.on('objectStats', setSelectedEntity)
     return () => {
       world.off('ready', setReady)
       world.off('player', setPlayer)
@@ -58,6 +62,7 @@ export function CoreUI({ world }) {
       world.off('avatar', setAvatar)
       world.off('kick', setKicked)
       world.off('disconnect', setDisconnected)
+      world.off('objectStats', setSelectedEntity)
     }
   }, [])
 
@@ -98,6 +103,7 @@ export function CoreUI({ world }) {
       `}
     >
       {<TwitterLogin world={world} />}
+      {ready && <PositionDisplay world={world} />}
       {disconnected && <Disconnected />}
       {!ui.reticleSuppressors && <Reticle world={world} />}
       {<Toast world={world} />}
@@ -113,6 +119,7 @@ export function CoreUI({ world }) {
       {ready && isTouch && <TouchBtns world={world} />}
       {ready && isTouch && <TouchStick world={world} />}
       {confirm && <Confirm options={confirm} />}
+      {selectedEntity && <ObjectStatsDialog entity={selectedEntity} onClose={() => setSelectedEntity(null)} world={world} />}
       <div id='core-ui-portal' />
       {ready && <Wallet world={world} />}
     </div>

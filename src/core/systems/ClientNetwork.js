@@ -26,9 +26,21 @@ export class ClientNetwork extends System {
 
   init({ wsUrl, name, avatar }) {
     const authToken = storage.get('authToken')
-    let url = `${wsUrl}?authToken=${authToken}`
-    if (name) url += `&name=${encodeURIComponent(name)}`
-    if (avatar) url += `&avatar=${encodeURIComponent(avatar)}`
+    let url = wsUrl
+    const params = new URLSearchParams()
+    
+    // Only add authToken if it exists and is not 'null'
+    if (authToken && authToken !== 'null') {
+      params.append('authToken', authToken)
+    }
+    if (name) params.append('name', name)
+    if (avatar) params.append('avatar', avatar)
+    
+    const queryString = params.toString()
+    if (queryString) {
+      url += (url.includes('?') ? '&' : '?') + queryString
+    }
+    
     this.ws = new WebSocket(url)
     this.ws.binaryType = 'arraybuffer'
     this.ws.addEventListener('message', this.onPacket)
@@ -142,7 +154,12 @@ export class ClientNetwork extends System {
     this.world.blueprints.deserialize(data.blueprints)
     this.world.entities.deserialize(data.entities)
     this.world.livekit?.deserialize(data.livekit)
-    storage.set('authToken', data.authToken)
+    
+    // Only save authToken if we don't already have one or if the new one is different
+    const existingToken = storage.get('authToken')
+    if (!existingToken || (data.authToken && data.authToken !== existingToken)) {
+      storage.set('authToken', data.authToken)
+    }
   }
 
   onSettingsModified = data => {
