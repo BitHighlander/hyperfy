@@ -513,7 +513,7 @@ export class ServerNetwork extends System {
       
       // Also track in assets_metadata table for the /assets page
       try {
-        const { moment } = await import('moment')
+        const moment = (await import('moment')).default
         const now = moment().toISOString()
         
         // Create a unique hash for this object based on its ID

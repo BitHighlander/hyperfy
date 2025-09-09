@@ -79,6 +79,7 @@ export function ObjectStatsDialog({ entity, onClose, world }) {
           background: rgba(0, 0, 0, 0.5);
           z-index: 99999;
           backdrop-filter: blur(2px);
+          pointer-events: auto;
         `}
       />
       
@@ -104,6 +105,7 @@ export function ObjectStatsDialog({ entity, onClose, world }) {
           box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
           z-index: 100000;
           backdrop-filter: blur(10px);
+          pointer-events: auto;
 
         .header {
           display: flex;
