@@ -15,21 +15,31 @@ export function PositionDisplay({ world }) {
       if (player) {
         // Try different ways to get position
         let pos = null
-        
-        // Method 1: Direct transform position
-        if (player.transform && player.transform.position) {
+
+        // Method 1: Base position (PlayerLocal uses this)
+        if (player.base && player.base.position) {
+          pos = player.base.position
+        }
+        // Method 2: Capsule position (physics body)
+        else if (player.capsule) {
+          try {
+            const pose = player.capsule.getGlobalPose()
+            if (pose && pose.p) {
+              pos = { x: pose.p.x, y: pose.p.y, z: pose.p.z }
+            }
+          } catch (e) {
+            // Capsule might not be available yet
+          }
+        }
+        // Method 3: Direct transform position
+        else if (player.transform && player.transform.position) {
           pos = player.transform.position
         }
-        // Method 2: Data position
+        // Method 4: Data position
         else if (player.data && player.data.position) {
           pos = player.data.position
         }
-        // Method 3: RigidBody position (if physics is involved)
-        else if (player.rigidBody && player.rigidBody.translation) {
-          const translation = player.rigidBody.translation()
-          pos = { x: translation.x, y: translation.y, z: translation.z }
-        }
-        // Method 4: Mesh position (if using Three.js mesh)
+        // Method 5: Mesh position (if using Three.js mesh)
         else if (player.mesh && player.mesh.position) {
           pos = player.mesh.position
         }
@@ -38,11 +48,12 @@ export function PositionDisplay({ world }) {
           const newX = typeof pos.x === 'number' ? pos.x : 0
           const newY = typeof pos.y === 'number' ? pos.y : 0
           const newZ = typeof pos.z === 'number' ? pos.z : 0
-          
-          // Only update if position actually changed
-          if (newX !== lastPositionRef.current.x || 
-              newY !== lastPositionRef.current.y || 
-              newZ !== lastPositionRef.current.z) {
+
+          // Only update if position actually changed (with small epsilon for floating point comparison)
+          const epsilon = 0.001
+          if (Math.abs(newX - lastPositionRef.current.x) > epsilon ||
+              Math.abs(newY - lastPositionRef.current.y) > epsilon ||
+              Math.abs(newZ - lastPositionRef.current.z) > epsilon) {
             lastPositionRef.current = { x: newX, y: newY, z: newZ }
             setPosition({ x: newX, y: newY, z: newZ })
           }

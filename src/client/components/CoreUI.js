@@ -21,6 +21,7 @@ import { Sidebar } from './Sidebar'
 import { Wallet } from './Wallet'
 import { TwitterLogin } from './TwitterLogin'
 import { PositionDisplay } from './PositionDisplay'
+import { HexDisplay } from './HexDisplay'
 import { ObjectStatsDialog } from './ObjectStatsDialog'
 
 export function CoreUI({ world }) {
@@ -104,6 +105,7 @@ export function CoreUI({ world }) {
     >
       {<TwitterLogin world={world} />}
       {ready && <PositionDisplay world={world} />}
+      {ready && <HexDisplay world={world} />}
       {disconnected && <Disconnected />}
       {!ui.reticleSuppressors && <Reticle world={world} />}
       {<Toast world={world} />}
