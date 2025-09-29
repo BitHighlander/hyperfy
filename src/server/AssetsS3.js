@@ -104,7 +104,10 @@ export class AssetsS3 {
         throw new Error('Invalid S3 URI format')
       }
 
-      const [, accessKeyId, secretAccessKey, rest] = credentialsMatch
+      const [, accessKeyId, secretAccessKeyEncoded, rest] = credentialsMatch
+
+      // Decode the secret key in case it contains URL-encoded characters
+      const secretAccessKey = decodeURIComponent(secretAccessKeyEncoded)
 
       // Parse the rest of the URI
       const parts = rest.split('/')

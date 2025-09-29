@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, HeadObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, HeadObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import fs from 'fs-extra'
 import path from 'path'
 import * as tar from 'tar'
@@ -38,6 +38,7 @@ export class WorldS3Backup {
 
     this.worldName = process.env.WORLD || 'world'
     this.backupInterval = parseInt(process.env.WORLD_BACKUP_INTERVAL || '300') * 1000 // Default 5 minutes
+    this.backupRetention = parseInt(process.env.WORLD_BACKUP_RETENTION || '10') // Number of backups to keep
     this.backupTimer = null
   }
 
@@ -99,6 +100,7 @@ export class WorldS3Backup {
     console.log('[world-backup] Prefix:', this.prefix)
     console.log('[world-backup] World:', this.worldName)
     console.log('[world-backup] Backup interval:', this.backupInterval / 1000, 'seconds')
+    console.log('[world-backup] Retention count:', this.backupRetention, 'backups')
 
     // Try to restore on startup
     await this.restore()
@@ -229,31 +231,47 @@ export class WorldS3Backup {
 
   async cleanupOldBackups() {
     try {
-      // List all backups
-      const response = await this.client.send(new ListObjectsV2Command({
-        Bucket: this.bucketName,
-        Prefix: `${this.prefix}${this.worldName}-`,
-      }))
+      // List all backups with pagination
+      let allBackups = []
+      let continuationToken = null
+      
+      do {
+        const response = await this.client.send(new ListObjectsV2Command({
+          Bucket: this.bucketName,
+          Prefix: `${this.prefix}${this.worldName}-`,
+          ContinuationToken: continuationToken
+        }))
+        
+        if (response.Contents) {
+          allBackups = allBackups.concat(response.Contents)
+        }
+        
+        continuationToken = response.NextContinuationToken
+      } while (continuationToken)
 
-      if (!response.Contents || response.Contents.length <= 11) {
+      if (!allBackups.length || allBackups.length <= 11) {
         return // Keep at least 10 backups + latest
       }
 
       // Sort by last modified date
-      const backups = response.Contents
+      const backups = allBackups
         .filter(obj => !obj.Key.includes('-latest.tar.gz'))
         .sort((a, b) => b.LastModified - a.LastModified)
 
-      // Delete old backups (keep 10 most recent)
-      const toDelete = backups.slice(10)
+      // Delete old backups (keep configured retention count)
+      const toDelete = backups.slice(this.backupRetention)
       
       for (const backup of toDelete) {
         console.log(`[world-backup] Deleting old backup: ${backup.Key}`)
-        // Note: DeleteObjectCommand not imported, but would be used here
-        // await this.client.send(new DeleteObjectCommand({
-        //   Bucket: this.bucketName,
-        //   Key: backup.Key
-        // }))
+        try {
+          await this.client.send(new DeleteObjectCommand({
+            Bucket: this.bucketName,
+            Key: backup.Key
+          }))
+          console.log(`[world-backup] Successfully deleted: ${backup.Key}`)
+        } catch (deleteError) {
+          console.error(`[world-backup] Failed to delete ${backup.Key}:`, deleteError.message)
+        }
       }
     } catch (error) {
       console.error('[world-backup] Cleanup failed:', error.message)
@@ -290,6 +308,147 @@ export class WorldS3Backup {
     console.log('[world-backup] Performing final backup before shutdown...')
     this.stopPeriodicBackup()
     await this.backup()
+  }
+
+  // Manual cleanup method for existing backups
+  async manualCleanup(keepCount = null) {
+    if (!this.enabled) return
+
+    const retentionCount = keepCount || this.backupRetention
+    
+    try {
+      console.log(`[world-backup] Starting manual cleanup (keeping ${retentionCount} most recent backups)...`)
+      
+      // List all backups with pagination
+      let allBackups = []
+      let continuationToken = null
+      
+      do {
+        const response = await this.client.send(new ListObjectsV2Command({
+          Bucket: this.bucketName,
+          Prefix: this.prefix,
+          ContinuationToken: continuationToken
+        }))
+        
+        if (response.Contents) {
+          allBackups = allBackups.concat(response.Contents)
+        }
+        
+        continuationToken = response.NextContinuationToken
+      } while (continuationToken)
+
+      if (allBackups.length === 0) {
+        console.log('[world-backup] No backups found')
+        return { deleted: 0, remaining: 0 }
+      }
+
+      // Sort by last modified date (newest first)
+      const backups = allBackups
+        .filter(obj => !obj.Key.includes('-latest.tar.gz'))
+        .sort((a, b) => b.LastModified - a.LastModified)
+
+      console.log(`[world-backup] Found ${backups.length} timestamped backups`)
+
+      // Delete old backups
+      const toDelete = backups.slice(retentionCount)
+      let deletedCount = 0
+      let failedCount = 0
+      let totalSize = 0
+      
+      for (const backup of toDelete) {
+        try {
+          totalSize += backup.Size || 0
+          await this.client.send(new DeleteObjectCommand({
+            Bucket: this.bucketName,
+            Key: backup.Key
+          }))
+          console.log(`[world-backup] Deleted: ${backup.Key} (${this.formatBytes(backup.Size)})`)
+          deletedCount++
+        } catch (deleteError) {
+          console.error(`[world-backup] Failed to delete ${backup.Key}:`, deleteError.message)
+          failedCount++
+        }
+      }
+
+      const summary = {
+        deleted: deletedCount,
+        failed: failedCount,
+        remaining: backups.length - deletedCount,
+        freedSpace: totalSize,
+        freedSpaceFormatted: this.formatBytes(totalSize)
+      }
+
+      console.log('[world-backup] Cleanup complete:')
+      console.log(`  - Deleted: ${summary.deleted} backups`)
+      console.log(`  - Failed: ${summary.failed}`)
+      console.log(`  - Remaining: ${summary.remaining} backups`)
+      console.log(`  - Freed space: ${summary.freedSpaceFormatted}`)
+
+      return summary
+    } catch (error) {
+      console.error('[world-backup] Manual cleanup failed:', error.message)
+      throw error
+    }
+  }
+
+  // List all backups with details
+  async listBackups() {
+    if (!this.enabled) return []
+
+    try {
+      // List all backups with pagination
+      let allBackups = []
+      let continuationToken = null
+      
+      do {
+        const response = await this.client.send(new ListObjectsV2Command({
+          Bucket: this.bucketName,
+          Prefix: this.prefix,
+          ContinuationToken: continuationToken
+        }))
+        
+        if (response.Contents) {
+          allBackups = allBackups.concat(response.Contents)
+        }
+        
+        continuationToken = response.NextContinuationToken
+      } while (continuationToken)
+
+      if (allBackups.length === 0) {
+        return { backups: [], totalCount: 0, totalSize: 0, totalSizeFormatted: '0 Bytes' }
+      }
+
+      const backups = allBackups.map(obj => ({
+        key: obj.Key,
+        size: obj.Size,
+        sizeFormatted: this.formatBytes(obj.Size),
+        lastModified: obj.LastModified,
+        isLatest: obj.Key.includes('-latest.tar.gz')
+      })).sort((a, b) => b.lastModified - a.lastModified)
+
+      const totalSize = backups.reduce((sum, b) => sum + b.size, 0)
+      
+      console.log(`[world-backup] Total backups: ${backups.length}`)
+      console.log(`[world-backup] Total size: ${this.formatBytes(totalSize)}`)
+      
+      return {
+        backups,
+        totalCount: backups.length,
+        totalSize,
+        totalSizeFormatted: this.formatBytes(totalSize)
+      }
+    } catch (error) {
+      console.error('[world-backup] Failed to list backups:', error.message)
+      throw error
+    }
+  }
+
+  formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 }
 
