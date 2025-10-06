@@ -67,7 +67,7 @@ export class HexGridRenderer extends System {
     })
 
     // Create glow material for special effect
-    const glowMaterial = new THREE.MeshBasicMaterial({
+    const glowMaterial = new THREE.MeshStandardMaterial({
       color: this.config.borderColor,
       emissive: this.config.borderEmissive,
       emissiveIntensity: this.config.glowIntensity,
@@ -234,7 +234,7 @@ export class HexGridRenderer extends System {
     // Create a glowing ring indicator for current hex
     const geometry = new THREE.TorusGeometry(HEX_SIZE * 0.8, 3, 8, 6)
 
-    const material = new THREE.MeshBasicMaterial({
+    const material = new THREE.MeshStandardMaterial({
       color: this.config.activeHexColor,
       emissive: this.config.activeHexColor,
       emissiveIntensity: this.config.activeGlowIntensity,
